@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "anticheat-client",
+  "version": "0.2.0",
+  "name": "AntiCheat Client",
+  "description": "Mod client opzionale: segnala presenza al server per badge verificato.",
+  "authors": ["AntiCheat Team"],
+  "license": "ARR",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["it.anticheat.client.AnticheatClient"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

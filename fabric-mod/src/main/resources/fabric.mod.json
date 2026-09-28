@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "anticheat",
+  "version": "0.2.0",
+  "name": "AntiCheat Server",
+  "description": "Server-side anticheat (Fabric 1.21.11).",
+  "authors": ["AntiCheat Team"],
+  "license": "ARR",
+  "environment": "server",
+  "entrypoints": {
+    "main": ["it.anticheat.fabric.AnticheatFabric"]
+  },
+  "depends": {
+    "fabricloader": ">=0.18.1",
+    "fabric-api": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

@@ -1,0 +1,21 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url 'https://maven.fabricmc.net/' }
+        maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+        maven { url 'https://maven.fabricmc.net/' }
+        maven { url 'https://repo.papermc.io/repository/maven-public/' }
+    }
+}
+
+rootProject.name = 'anticheat'
+include 'core'
+include 'paper-plugin'
+include 'fabric-mod'
+include 'client-mod'

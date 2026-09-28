@@ -1,0 +1,23 @@
+name: AntiCheat
+version: 0.2.0
+main: it.anticheat.paper.AnticheatPaper
+api-version: '1.20'
+author: AntiCheat Team
+description: Server-side anticheat (Paper/Purpur 1.21.11) con GUI admin e report.
+softdepend: [ProtocolLib]
+commands:
+  ac:
+    description: Pannello anticheat
+    usage: /ac [gui|vl|reset|download|reports]
+    permission: anticheat.admin
+  report:
+    description: Segnala un giocatore
+    usage: /report <giocatore> <motivo>
+permissions:
+  anticheat.admin:
+    default: op
+  anticheat.exempt:
+    description: Esente da tutti i controlli anticheat
+    default: false
+  anticheat.report:
+    default: true

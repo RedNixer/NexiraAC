@@ -1,0 +1,21 @@
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
+}
+
+dependencies {
+    implementation project(':core')
+    compileOnly "io.papermc.paper:paper-api:${project.property('paper_api_version')}"
+    // ProtocolLib solo in compilazione: a runtime e opzionale (softdepend).
+    // Se manca sul server, i check pacchetto restano spenti da soli.
+    compileOnly 'net.dmulloy2:ProtocolLib:5.4.0'
+}
+
+// Fat-jar: il plugin deve contenere le classi di :core,
+// altrimenti Paper fallisce con NoClassDefFoundError (AnticheatCore).
+tasks.named('jar', Jar) {
+    archiveBaseName = 'anticheat-paper'
+    dependsOn(':core:jar')
+    from { zipTree(project(':core').tasks.named('jar', Jar).get().archiveFile.get().asFile) }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
