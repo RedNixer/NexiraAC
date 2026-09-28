@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /**
  * NoFall v2: becca i due trucchi reali.
@@ -22,19 +23,11 @@ public class NoFallCheck extends Check {
             data.wasOnGround = ctx.onGround;
             return 0;
         }
-        if (ctx.ping > 300) {
-            data.wasOnGround = ctx.onGround;
-            return 0;
-        }
-
-        // A) onGround-spoof: dichiara terra mentre cade a picco SENZA supporto.
-        //    Soglia -1.8 (non -2.5): i cheat che mandano piu pacchetti/sec
-        //    spalmano la caduta su dy piu piccoli; camminare giu da un bordo
-        //    fa al massimo 2-3 tick cosi, lo streak a 6 non scatta mai legittimo.
-        //    Il supporto esclude le discese ripide (saltano col terreno sotto).
+        // A) onGround-spoof: streak allungato col ping (posizioni raggruppate),
+        // mai spento: prima sopra 300 era invisibile.
         if (ctx.onGround && !ctx.groundBelow && ctx.dy < -1.8 && !ctx.inWater && !ctx.onLadder) {
             data.groundSpoofStreak++;
-            if (data.groundSpoofStreak >= 6) {
+            if (data.groundSpoofStreak >= LatencyComp.needStreak(ctx.ping, 6)) {
                 data.groundSpoofStreak = 0;
                 data.wasOnGround = ctx.onGround;
                 return 5;
@@ -73,7 +66,7 @@ public class NoFallCheck extends Check {
         if (ctx.onGround && !ctx.groundBelow && ctx.dy < -0.3
                 && !ctx.inWater && !ctx.onLadder && !ctx.flying && !ctx.gliding) {
             data.noGroundStreak++;
-            if (data.noGroundStreak >= 8) {
+            if (data.noGroundStreak >= LatencyComp.needStreak(ctx.ping, 8)) {
                 data.noGroundStreak = 0;
                 data.wasOnGround = ctx.onGround;
                 return 5;

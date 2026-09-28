@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /** Sprint impossibile: sprint con fame bassa, cecita o mentre si usa item/scudo. */
 public class SprintCheck extends Check {
@@ -16,10 +17,9 @@ public class SprintCheck extends Check {
             data.sprintStreak = 0;
             return 0;
         }
-        if (ctx.ping > 350) return 0;
         if (ctx.hungry || ctx.blind || ctx.blocking || ctx.usingItem) {
             data.sprintStreak++;
-            if (data.sprintStreak >= 3) {
+            if (data.sprintStreak >= LatencyComp.needStreak(ctx.ping, 3)) {
                 data.sprintStreak = 0;
                 return 3;
             }

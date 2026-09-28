@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /**
  * AimSnap: scatti di rotazione inumani (snap silenziosi di aura/scaffold).
@@ -17,13 +18,12 @@ public class AimSnapCheck extends Check {
 
     @Override
     public int checkMove(PlayerData data, MoveContext ctx) {
-        if (ctx.ping > 350) return 0;
         long now = System.currentTimeMillis();
         int n = 0;
         for (long t : data.snapTimes) {
             if (now - t <= 2000) n++;
         }
-        if (n >= 6) {
+        if (n >= LatencyComp.needStreak(ctx.ping, 6)) {
             data.snapTimes.clear();
             return 4;
         }

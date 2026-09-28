@@ -14,6 +14,16 @@ import org.bukkit.event.entity.EntityResurrectEvent;
 
 public class WorldListener implements Listener {
 
+    private final org.bukkit.plugin.Plugin plugin;
+
+    public WorldListener() {
+        this.plugin = org.bukkit.Bukkit.getPluginManager().getPlugin("AntiCheat");
+    }
+
+    public WorldListener(org.bukkit.plugin.Plugin plugin) {
+        this.plugin = plugin;
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent e) {
         Player p = e.getPlayer();
@@ -66,8 +76,45 @@ public class WorldListener implements Listener {
         org.bukkit.block.Block b = e.getBlock();
         String key = p.getWorld().getName() + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
         int before = AnticheatCore.get().data(p.getUniqueId()).totalVl();
+        // DPS Fase 4: attrezzo + efficiency + haste/fatigue reali in mano
+        String tool = "HAND";
+        int effLvl = 0;
+        int hasteAmp = -1;
+        int fatigueAmp = -1;
+        try {
+            org.bukkit.inventory.ItemStack hand = p.getInventory().getItemInMainHand();
+            if (hand != null) {
+                String tn = hand.getType().name();
+                if (tn.contains("WOODEN")) tool = "WOOD";
+                else if (tn.contains("STONE")) tool = "STONE";
+                else if (tn.contains("IRON")) tool = "IRON";
+                else if (tn.contains("GOLDEN")) tool = "GOLD";
+                else if (tn.contains("DIAMOND")) tool = "DIAMOND";
+                else if (tn.contains("NETHERITE")) tool = "NETHERITE";
+                try {
+                    effLvl = hand.getEnchantmentLevel(
+                        org.bukkit.enchantments.Enchantment.EFFICIENCY);
+                } catch (Throwable ignored) {}
+            }
+        } catch (Throwable ignored) {}
+        try {
+            org.bukkit.potion.PotionEffect h = p.getPotionEffect(
+                org.bukkit.potion.PotionEffectType.HASTE);
+            if (h != null) hasteAmp = h.getAmplifier();
+        } catch (Throwable ignored) {}
+        try {
+            org.bukkit.potion.PotionEffect f = p.getPotionEffect(
+                org.bukkit.potion.PotionEffectType.MINING_FATIGUE);
+            if (f != null) fatigueAmp = f.getAmplifier();
+        } catch (Throwable ignored) {}
+        boolean inWater = false;
+        try { inWater = p.isInWater(); } catch (Throwable ignored) {}
+        boolean onGround = true;
+        try { onGround = p.isOnGround(); } catch (Throwable ignored) {}
         // mine-timing PRIMA (legge la mappa danni intatta), poi break (la consuma)
         AnticheatCore.get().handleMineTiming(p.getUniqueId(), p.getName(), hardness, key, hasHaste);
+        AnticheatCore.get().handleMineDps(p.getUniqueId(), p.getName(), hardness, key,
+            tool, effLvl, hasteAmp, fatigueAmp, inWater, onGround);
         AnticheatCore.get().handleBlockBreak(p.getUniqueId(), p.getName(), hard, key);
         if (AnticheatCore.get().isDebug(p.getUniqueId())) {
             PlayerData d = AnticheatCore.get().data(p.getUniqueId());
@@ -110,6 +157,40 @@ public class WorldListener implements Listener {
     public void onTotem(EntityResurrectEvent e) {
         if (e.getEntity() instanceof Player p) {
             AnticheatCore.get().handleTotemPop(p.getUniqueId(), p.getName());
+            // Refill-timing: mano vuota al pop + totem 300ms dopo = macro.
+            // Il pop consuma il totem: se la mano era vuota, un totem che
+            // ricompare in 6 tick e arrivato via inventario scriptato.
+            boolean hadMain = false;
+            boolean hadOff = false;
+            try {
+                org.bukkit.inventory.ItemStack main = p.getInventory().getItemInMainHand();
+                org.bukkit.inventory.ItemStack off = p.getInventory().getItemInOffHand();
+                hadMain = main != null && main.getType() == org.bukkit.Material.TOTEM_OF_UNDYING;
+                hadOff = off != null && off.getType() == org.bukkit.Material.TOTEM_OF_UNDYING;
+            } catch (Throwable ignored) {}
+            // al pop il totem si consuma: mano con totem = aveva scorta doppia
+            // (legit); mano vuota = segnale refill da verificare tra 6 tick
+            final java.util.UUID uuid = p.getUniqueId();
+            final String name = p.getName();
+            // doppia scorta (entrambe le mani): il refill dopo e legittimo
+            final boolean hadDouble = hadMain && hadOff;
+            if (plugin != null) {
+                try {
+                    org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        try {
+                            Player pl = org.bukkit.Bukkit.getPlayer(uuid);
+                            if (pl == null) return;
+                            org.bukkit.inventory.ItemStack m2 = pl.getInventory().getItemInMainHand();
+                            org.bukkit.inventory.ItemStack o2 = pl.getInventory().getItemInOffHand();
+                            boolean hasNow = (m2 != null && m2.getType() == org.bukkit.Material.TOTEM_OF_UNDYING)
+                                || (o2 != null && o2.getType() == org.bukkit.Material.TOTEM_OF_UNDYING);
+                            // al pop il totem usato sparisce: se ora ce n'e uno e
+                            // prima non c'era scorta, e refill (macro o mano veloce)
+                            AnticheatCore.get().handleTotemRefill(uuid, name, hadDouble, hasNow);
+                        } catch (Throwable ignored) {}
+                    }, 6L);
+                } catch (Throwable ignored) {}
+            }
         }
     }
 }

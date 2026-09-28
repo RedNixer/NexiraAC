@@ -43,6 +43,7 @@ public class CombatListener implements Listener {
         ctx.dtSinceLastAttackMillis = -1; // calcolato dal core
         try { ctx.ping = p.getPing(); } catch (Throwable t) { ctx.ping = 0; }
         try { ctx.blocking = p.isBlocking(); } catch (Throwable t) { ctx.blocking = false; }
+        try { ctx.attackCooldown = p.getAttackCooldown(); } catch (Throwable t) { ctx.attackCooldown = -1; }
         // yaw diff semplificata: angolo tra direzione sguardo e direzione target
         try {
             double dx = target.getLocation().getX() - p.getLocation().getX();
@@ -98,8 +99,14 @@ public class CombatListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onVelocity(PlayerVelocityEvent e) {
-        // knockback/esplosioni/riptide: 2s di tregua dai controlli movimento
-        AnticheatCore.get().exemptMove(e.getPlayer().getUniqueId(), 2000);
+        // knockback/esplosioni/riptide: vettore atteso nel core (Fase 3) +
+        // tregua breve. Il core sottrae il vettore invece di spegnere tutto.
+        try {
+            org.bukkit.util.Vector v = e.getVelocity();
+            AnticheatCore.get().noteKnockback(e.getPlayer().getUniqueId(),
+                v.getX(), v.getY(), v.getZ());
+        } catch (Throwable ignored) {}
+        AnticheatCore.get().exemptMove(e.getPlayer().getUniqueId(), 500);
     }
 
     @EventHandler(ignoreCancelled = true)

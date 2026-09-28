@@ -3,8 +3,9 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
-/** KillAura A: troppi attacchi troppo veloci / angoli impossibili. */
+/** KillAura: rate + cooldown 1.9+ ignorato + angoli impossibili. */
 public class KillAuraCheck extends Check {
     @Override public String name() { return "KillAura"; }
     @Override public CheckType type() { return CheckType.COMBAT; }
@@ -12,13 +13,26 @@ public class KillAuraCheck extends Check {
 
     @Override
     public int checkFight(PlayerData data, FightContext ctx) {
-        if (ctx.ping > 300) return 0;
-        // CPS umanamente impossibile in modo costante (>14 colpi/sec = <70ms tra colpi)
-        if (ctx.dtSinceLastAttackMillis >= 0 && ctx.dtSinceLastAttackMillis < 55) {
+        // CPS umanamente impossibile in modo costante (soglia scalata col ping:
+        // col lag i colpi arrivano raggruppati, mai esenzione totale)
+        if (ctx.dtSinceLastAttackMillis >= 0
+                && ctx.dtSinceLastAttackMillis < LatencyComp.auraMinDt(ctx.ping)) {
             data.fastAttackStreak++;
             if (data.fastAttackStreak >= 4) return 5;
         } else {
             data.fastAttackStreak = 0;
+        }
+        // B1: cooldown 1.9+ ignorato. Vanilla: danno pieno solo a cooldown 1.0;
+        // colpire a <0.8 di continuo e fisicamente impossibile a mano (il gioco
+        // rallenta i colpi veri). Una killaura a 300ms/colpo sta sempre bassa.
+        if (ctx.attackCooldown >= 0 && ctx.attackCooldown < 0.8) {
+            data.cooldownStreak++;
+            if (data.cooldownStreak >= 4) {
+                data.cooldownStreak = 0;
+                return 5;
+            }
+        } else {
+            data.cooldownStreak = 0;
         }
         // scatto angolare impossibile tra due colpi consecutivi
         if (ctx.targetYawDiff > 120 && ctx.dtSinceLastAttackMillis < 150) return 4;

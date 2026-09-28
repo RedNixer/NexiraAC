@@ -17,8 +17,8 @@ public class AnticheatConfig {
     public static final List<String> ALL_CHECKS = List.of(
         "Speed", "Fly", "NoFall", "Step", "Scaffold",
         "Reach", "KillAura", "AutoClicker", "FastBreak", "AutoTotem", "XRay",
-        "Sprint", "NoSlow", "Timer", "Jesus", "GUIMove", "Multitask", "Spider",
-        "AimSnap", "AimLock");
+        "Sprint", "NoSlow", "Timer", "Jesus", "GUIMove",         "Multitask", "Spider",
+        "AimSnap", "AimLock", "Prediction", "PacketOrder", "RotationStream", "Interact");
 
     public List<UUID> adminUuids = new ArrayList<>();
     public boolean usePermissionToo = true;
@@ -94,6 +94,10 @@ public class AnticheatConfig {
             + "  Spider: true # sperimentale: gira solo con experimental-checks\n"
             + "  AimSnap: true\n"
             + "  AimLock: true\n"
+            + "  Prediction: true # simulatore vanilla (Fase 1): sostituisce le soglie fisse\n"
+            + "  PacketOrder: true # solo Paper+PL (Fase 2 P2): ordine pacchetti combat\n"
+            + "  RotationStream: true # solo Paper+PL (Fase 2 P3): rotazioni raw dai LOOK\n"
+            + "  Interact: true # solo Paper+PL (Passo 3): uso+colpo, self-hit, multi-entita, range\n"
             + "experimental-checks: false # attiva i check sperimentali (piu FP)\n"
             + "tuning: # sensibilita (modificabile anche dalla GUI)\n"
             + "  autoclicker-std: 4.0 # deviazione max click: 2.5 rigido, 4.0 normale, 6.0 largo\n"

@@ -16,14 +16,15 @@ public class FlyCheck extends Check {
             data.airTicks = 0;
             return 0;
         }
-        if (ctx.ping > 300) return 0;
         if (!ctx.onGround) {
             data.airTicks++;
             // salita verticale senza salto (salto max ~1.25 blocchi, tolleranza)
             if (ctx.dy > 1.4 && ctx.distXZ < 2.0) return 5;
             // aria troppo lunga senza scendere: la ragnatela e lo slime
-            // fanno planare quasi fermi -> richiedi anche movimento orizzontale
-            if (data.airTicks > 120) {
+            // fanno planare quasi fermi -> richiedi anche movimento orizzontale.
+            // Soglia allungata col ping (pacchetti raggruppati), mai spenta:
+            // un fly a 400ms prima era invisibile.
+            if (data.airTicks > 120 + Math.min(120, ctx.ping / 2)) {
                 if (ctx.dy > 0.1) return 4;
                 if (ctx.dy >= -0.05 && ctx.distXZ > 0.4) return 4;
             }

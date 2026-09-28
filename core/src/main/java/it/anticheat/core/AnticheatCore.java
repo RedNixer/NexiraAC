@@ -12,7 +12,11 @@ import it.anticheat.core.checks.KillAuraCheck;
 import it.anticheat.core.checks.MultitaskCheck;
 import it.anticheat.core.checks.NoFallCheck;
 import it.anticheat.core.checks.NoSlowCheck;
+import it.anticheat.core.checks.InteractCheck;
+import it.anticheat.core.checks.PacketOrderCheck;
+import it.anticheat.core.checks.PredictionCheck;
 import it.anticheat.core.checks.ReachCheck;
+import it.anticheat.core.checks.RotationStreamCheck;
 import it.anticheat.core.checks.ScaffoldCheck;
 import it.anticheat.core.checks.SpeedCheck;
 import it.anticheat.core.checks.SpiderCheck;
@@ -57,7 +61,7 @@ public class AnticheatCore {
 
     /** Check che possono triggerare il setback (riporto a terra). */
     private static final Set<String> SETBACK_CHECKS = Set.of(
-        "Speed", "Fly", "Step", "NoFall", "Scaffold");
+        "Speed", "Fly", "Step", "NoFall", "Scaffold", "Prediction");
 
     private final List<Check> checks = new ArrayList<>();
     private final Map<UUID, PlayerData> players = new ConcurrentHashMap<>();
@@ -116,6 +120,10 @@ public class AnticheatCore {
     private final SpiderCheck spider = new SpiderCheck();
     private final AimSnapCheck aimsnap = new AimSnapCheck();
     private final AimLockCheck aimlock = new AimLockCheck();
+    private final PredictionCheck prediction = new PredictionCheck();
+    private final PacketOrderCheck packetOrder = new PacketOrderCheck();
+    private final InteractCheck interact = new InteractCheck();
+    private final RotationStreamCheck rotationStream = new RotationStreamCheck();
 
     private final Map<String, Check> byName = new ConcurrentHashMap<>();
 
@@ -157,6 +165,10 @@ public class AnticheatCore {
         checks.add(spider);
         checks.add(aimsnap);
         checks.add(aimlock);
+        checks.add(prediction);
+        checks.add(packetOrder);
+        checks.add(interact);
+        checks.add(rotationStream);
         for (Check c : checks) byName.put(c.name(), c);
     }
 
@@ -205,7 +217,7 @@ public class AnticheatCore {
             d.hasGroundPos = true;
         }
         if (first) return;
-        if (now < d.exemptUntil) return; // knockback, teleport, veicoli, perle...
+        if (now < d.exemptUntil || now < d.moveExemptUntil) return; // knockback, teleport, veicoli, perle...
         // tracking rotazioni (snap) sempre attivo: serve ad AimSnap e bow-snap
         if (!d.yawInit) {
             d.lastMoveYaw = ctx.yaw;
@@ -268,6 +280,10 @@ public class AnticheatCore {
             int as = aimsnap.checkMove(d, ctx);
             if (as > 0) { add += as; details.append("AimSnap+").append(as).append(" "); }
         }
+        if (isEnabled("Prediction")) {
+            int pr = prediction.checkMove(d, ctx);
+            if (pr > 0) { add += pr; details.append("Prediction+").append(pr).append(" "); }
+        }
         if (add > 0) flag(uuid, "Movement", add, details.toString().trim());
     }
 
@@ -288,6 +304,18 @@ public class AnticheatCore {
         d.airTicks = 0;
         d.pendingFallDist = 0;
         d.groundSpoofStreak = 0;
+        d.predHStreak = 0;
+        d.predVStreak = 0;
+        d.predHoverStreak = 0;
+        d.predFallRefTicks = 0;
+        d.pktOrderStreak = 0;
+        d.pktNoSwingStreak = 0;
+        d.pktGroundStreak = 0;
+        d.rotSnapStreak = 0;
+        d.rotLockStreak = 0;
+        d.rotDupStreak = 0;
+        d.rotGcdStreak = 0;
+        d.rotGcdWindows = 0;
         if (worldKey != null && !worldKey.equals(d.lastGroundWorld)) {
             d.hasGroundPos = false; // mondo diverso: la vecchia safe-pos non vale piu
         }
@@ -295,7 +323,39 @@ public class AnticheatCore {
 
     /** Esenta dai controlli movimento per ms (danni, knockback, perle, riptide...). */
     public void exemptMove(UUID uuid, long ms) {
-        data(uuid).exemptUntil = System.currentTimeMillis() + ms;
+        long until = System.currentTimeMillis() + ms;
+        PlayerData d = data(uuid);
+        d.exemptUntil = until;
+        d.moveExemptUntil = until;
+    }
+
+    /** Esenta dai controlli combat per ms (respawn, cambio mondo...). */
+    public void exemptFight(UUID uuid, long ms) {
+        data(uuid).fightExemptUntil = System.currentTimeMillis() + ms;
+    }
+
+    /**
+     * Knockback atteso (Fase 3): il vettore viene sottratto al movimento
+     * osservato invece di spegnere i check. Finestra = 1500ms o ping*3.
+     */
+    public void noteKnockback(UUID uuid, double vx, double vy, double vz) {
+        PlayerData d = data(uuid);
+        d.kbVX = vx;
+        d.kbVY = vy;
+        d.kbVZ = vz;
+        d.kbTime = System.currentTimeMillis();
+    }
+
+    /** Vettore knockback ancora valido (altrimenti 0). Chiamato dai check move. */
+    public static double[] consumeKnockback(PlayerData d, int pingMs) {
+        long window = Math.max(1500, (long) pingMs * 3);
+        if (d.kbTime == 0 || System.currentTimeMillis() - d.kbTime > window) {
+            return new double[]{0, 0, 0};
+        }
+        // decade linearmente: il knockback vanilla perde ~40%/tick in aria
+        double age = (System.currentTimeMillis() - d.kbTime) / 50.0;
+        double f = Math.pow(0.6, age);
+        return new double[]{d.kbVX * f, d.kbVY * f, d.kbVZ * f};
     }
 
     /** Avviso diretto allo staff (per alert tipo XRay che non devono bannare da soli). */
@@ -306,6 +366,7 @@ public class AnticheatCore {
     public void handleFight(UUID uuid, String name, Check.FightContext ctx) {
         if (isExempt(uuid)) return;
         PlayerData d = data(uuid);
+        if (System.currentTimeMillis() < d.fightExemptUntil) return;
         d.name = name;
         long now = System.currentTimeMillis();
         if (d.lastAttackTime == 0) ctx.dtSinceLastAttackMillis = -1;
@@ -384,10 +445,68 @@ public class AnticheatCore {
 
     /** Pacchetto Flying ricevuto (ProtocolLib): timer preciso sui pacchetti reali. */
     public void handleFlyingPacket(UUID uuid) {
-        if (!isEnabled("Timer") || isExempt(uuid)) return;
+        if (isExempt(uuid)) return;
         PlayerData d = data(uuid);
+        if (isEnabled("PacketOrder")) packetOrder.onFlying(d);
+        if (!isEnabled("Timer")) return;
         int t = timer.onPacket(d);
         if (t > 0) flag(uuid, "Timer", t, "flying oltre 25/s");
+    }
+
+    /** Swing pacchetto (ARM_ANIMATION): alimenta il no-swing P2. */
+    public void notePacketSwing(UUID uuid) {
+        if (isExempt(uuid)) return;
+        if (!isEnabled("PacketOrder")) return;
+        packetOrder.onSwing(data(uuid));
+    }
+
+    /** ATTACK via pacchetto: ordine + swing (P2). Chiamare prima di handleFight. */
+    public void handlePacketAttack(UUID uuid, String name) {
+        if (!isEnabled("PacketOrder") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int o = packetOrder.onPacketAttack(d);
+        if (o > 0) flag(uuid, "PacketOrder", o, "colpo fuori sequenza/senza swing");
+    }
+
+    /** ATTACK via pacchetto: uso-item + self-hit (Passo 3 C1/F1). */
+    public void handleInteractAttack(UUID uuid, String name, boolean usingItem, boolean selfHit, int entityId) {
+        if (!isEnabled("Interact") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int a = interact.onAttack(d, usingItem, selfHit);
+        if (a > 0) flag(uuid, "Interact", a, selfHit ? "colpo contro se stesso" : "colpo mentre usa item");
+        int m = interact.onInteract(d, entityId);
+        if (m > 0) flag(uuid, "Interact", m, "doppia entita stesso tick");
+    }
+
+    /** USE non-attacco via pacchetto: range interazioni (Passo 3 F2). */
+    public void handleInteractUse(UUID uuid, String name, int entityId, double dist) {
+        if (!isEnabled("Interact") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int m = interact.onInteract(d, entityId);
+        if (m > 0) flag(uuid, "Interact", m, "doppia entita stesso tick");
+        int r = interact.onUseRange(d, dist);
+        if (r > 0) flag(uuid, "Interact", r, "interazione oltre gittata");
+    }
+
+    /** Flag ground del pacchetto Flying + dy reale: NoFall packet (P2). */
+    public void handlePacketGround(UUID uuid, String name, boolean packetGround, double dy) {
+        if (!isEnabled("PacketOrder") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int g = packetOrder.onPacketGround(d, packetGround, dy);
+        if (g > 0) flag(uuid, "PacketOrder", g, "ground-spoof da pacchetto");
+    }
+
+    /** Rotazione raw dal pacchetto LOOK (P3). distXZ = movimento orizzontale stesso tick. */
+    public void handlePacketRotation(UUID uuid, String name, float yaw, float pitch, double distXZ) {
+        if (!isEnabled("RotationStream") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int r = rotationStream.onRotation(d, yaw, pitch, distXZ);
+        if (r > 0) flag(uuid, "RotationStream", r, "rotazione raw impossibile");
     }
 
     public void noteHeldChange(UUID uuid) {
@@ -438,6 +557,23 @@ public class AnticheatCore {
         if (m > 0) flag(uuid, "FastBreak", m, "duro in " + dt + "ms senza haste");
     }
 
+    /**
+     * DPS mining Fase 4 (Paper): dt danno->rottura vs tempo minimo vanilla
+     * per attrezzo/incanti/effetti. Chiamare PRIMA di handleBlockBreak.
+     */
+    public void handleMineDps(UUID uuid, String name, float hardness, String key,
+            String tool, int effLvl, int hasteAmp, int fatigueAmp,
+            boolean inWater, boolean onGround) {
+        if (!isEnabled("FastBreak") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        Long start = key == null ? null : d.breakDamage.get(key);
+        long dt = start == null ? -1 : System.currentTimeMillis() - start;
+        int v = fastbreak.onDps(d, hardness, dt, tool, effLvl,
+            hasteAmp, fatigueAmp, inWater, onGround);
+        if (v > 0) flag(uuid, "FastBreak", v, "scavo oltre DPS vanilla (" + dt + "ms)");
+    }
+
     public void handleTotemPop(UUID uuid, String name) {
         if (!isEnabled("AutoTotem") || isExempt(uuid)) return;
         PlayerData d = data(uuid);
@@ -456,6 +592,15 @@ public class AnticheatCore {
         }
         int t = autototem.onPop(d);
         if (t > 0) flag(uuid, "AutoTotem", t, "totem troppo frequenti");
+    }
+
+    /** Refill post-pop (dallo scheduler 6 tick dopo il pop). */
+    public void handleTotemRefill(UUID uuid, String name, boolean hadTotemAtPop, boolean hasTotemNow) {
+        if (!isEnabled("AutoTotem") || isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        int r = autototem.onRefill(d, hadTotemAtPop, hasTotemNow);
+        if (r > 0) flag(uuid, "AutoTotem", r, "refill totem istantaneo");
     }
 
     /** Scocco freccia (per bow-snap: tiro subito dopo uno snap di mira). */

@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.MiningCalc;
 
 /**
  * FastBreak: segnali indipendenti (bucket unico, dettagli diversi).
@@ -57,6 +58,36 @@ public class FastBreakCheck extends Check {
             }
         } else {
             data.mineStreak = 0;
+        }
+        return 0;
+    }
+
+    /**
+     * DPS Fase 4: dt reale danno->rottura vs tempo minimo vanilla per
+     * attrezzo/incanti/effetti. Becca SpeedMine blando (~70%) che i check
+     * a soglia fissa non vedono: scavare al 70% del tempo minimo per 4
+     * blocchi di fila non e umano, e tool maxato.
+     */
+    public int onDps(PlayerData data, float hardness, long dtMs, String tool,
+            int effLvl, int hasteAmp, int fatigueAmp, boolean inWater, boolean onGround) {
+        if (dtMs < 0) {
+            data.dpsStreak = 0;
+            return 0;
+        }
+        long min = MiningCalc.minTimeMs(hardness, tool, effLvl,
+            hasteAmp, fatigueAmp, inWater, onGround);
+        if (min < 0) {
+            data.dpsStreak = 0;
+            return 0; // insta-break: nessun giudizio
+        }
+        if (dtMs < min) {
+            data.dpsStreak++;
+            if (data.dpsStreak >= 4) {
+                data.dpsStreak = 0;
+                return dtMs < min / 2 ? 5 : 3;
+            }
+        } else {
+            data.dpsStreak = 0;
         }
         return 0;
     }

@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /**
  * AimLock: mira congelata mentre ci si muove (aim che segue da solo).
@@ -34,10 +35,9 @@ public class AimLockCheck extends Check {
         double pDiff = Math.abs(data.lastHitPitch - ctx.attackerPitch);
         data.lastHitYaw = ctx.attackerYaw;
         data.lastHitPitch = ctx.attackerPitch;
-        if (ctx.ping > 350) return 0;
         if (yDiff < 0.5 && pDiff < 0.5 && moved > 1.5) {
             data.lockStreak++;
-            if (data.lockStreak >= 3) {
+            if (data.lockStreak >= LatencyComp.needStreak(ctx.ping, 3)) {
                 data.lockStreak = 0;
                 return 5;
             }

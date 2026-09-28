@@ -27,23 +27,35 @@ There is also an optional client companion mod: players who install it get a ver
 badge, and staff get an F8 shortcut to the panel. The server never trusts the client —
 the mod is only a signal, all decisions stay server-side.
 
-## Checks (20)
+## Checks (24)
 
 Movement: Speed (spikes, metronome, hop rhythm), Fly (flight, airtime, stationary hover),
 NoFall (ground spoof, cancelled damage, missing support), Step, Sprint (hunger, blindness,
-item use), NoSlow (items, webs, soul sand), Timer, Jesus, Spider*.
-Combat: Reach (ping bands, 6-hit window), KillAura (rate, yaw snap), AutoClicker
-(your CPS limit, regularity), Multitask*, AimSnap (rotation snaps), AimLock (frozen aim,
-bow snap).
+item use), NoSlow (items, webs, soul sand), Timer, Jesus, Spider*, Prediction (vanilla
+physics simulation: horizontal/vertical/hover against computed limits instead of fixed
+thresholds — catches slow strafe and glides the old checks missed).
+Combat: Reach (eye-to-hitbox, 3.05 + half ping margin, 8-hit window, through-wall raytrace),
+KillAura (rate, yaw snap, 1.9+ attack-cooldown ignored), AutoClicker (your CPS limit,
+regularity), Multitask*, AimSnap (rotation snaps), AimLock (frozen aim, bow snap),
+RotationStream (raw LOOK packets: single-packet snaps, modulo-360 injections, duplicate
+packets), PacketOrder (attack without movement/swing, packet ground-spoof), Interact
+(mid-use attacks, self-hits, multi-entity ticks, long-range interacts).
 World: Scaffold (rate, gap, sneak, yaw snap, rotation/face, range), FastBreak (damage
-duration, intervals, no-swing, mine timing, same-tick multi-break, hotbar swap),
-AutoTotem (rate, inventory-swap timing), XRay (statistical, staff alerts only).
+duration, intervals, no-swing, mine timing, same-tick multi-break, hotbar swap, vanilla
+DPS per tool/enchants), AutoTotem (rate, inventory-swap timing, 300ms post-pop refill),
+XRay (statistical, staff alerts only).
 
 \* experimental checks, off by default (`experimental-checks: true` to enable).
 
-With ProtocolLib installed (Paper only, optional), two extra packet-level checks unlock:
-precise Flying rate (Timer) and eye-to-hitbox attack range. Without it, everything else
-keeps working on events alone.
+No more "invisible at high ping": every check now scales tolerance continuously with
+latency (longer streaks, wider margins) instead of switching off above 300ms. Knockback
+is subtracted from observed movement instead of blanking all checks for 2 seconds.
+
+With ProtocolLib installed (Paper only, optional), the packet-level checks unlock:
+precise Flying rate, eye-to-hitbox range, attack order, raw rotation stream and
+interact validation. Without it, everything else keeps working on events alone.
+Note: on 1.21.11 you need a ProtocolLib dev-build (5.5.0+); the generic FLYING packet
+type isn't registered there, so the timer listens on the four specific types.
 
 ## Nexira vs Grim vs Vulcan
 
@@ -51,7 +63,7 @@ keeps working on events alone.
 |---|---|---|---|
 | Price | Free, open source | Free, open source | Paid |
 | Platforms | Paper/Purpur **and** Fabric, shared core | Bukkit and Fabric | Spigot/Paper forks |
-| Checks | 20 event-based + 2 packet-level | 130+ packet-level with full movement simulation | 100+, strong combat reputation |
+| Checks | 24 (4 simulated/packet-level) | 130+ packet-level with full movement simulation | 100+, strong combat reputation |
 | Performance | Light by default, packets opt-in | Heavier: simulates every player physics tick | Tuned for large networks |
 | Setup | One config + live GUI tuning + test-mode that logs without punishing | Powerful but config-heavy, needs tuning experience | Close to plug-and-play |
 | Client companion mod | Yes (verified badge, staff F8 panel) | No | No |
@@ -107,9 +119,16 @@ Fabric mappings download, ~1 GB). Java 21 required.
 
 ## Roadmap
 
-- ProtocolLib phase 2/3: packet order, bad-packet sequences, raw rotation stream
-- Tool-aware mine timing, inventory-action correlation on Fabric
-- Web dashboard for violations history
+Done recently: vanilla movement simulation, latency-as-uncertainty (no more
+ping cutoffs), knockback subtraction, tool-aware mine DPS, packet order +
+rotation stream, PvP pass (reach raytrace, attack cooldown, interact checks),
+AutoTotem post-pop refill.
+
+Next:
+- Fabric parity: 20-tick sampling, mine DPS and inventory clicks on Fabric
+- Punishments per-check (N:M instead of global thresholds)
+- SQLite/MySQL storage for violations history
+- Web dashboard
 
 ## License
 

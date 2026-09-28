@@ -27,7 +27,15 @@ public class PlayerData {
     public volatile long lastAttackTime = 0;
     public volatile double lastAttackDistance = 0;
     public volatile int fastAttackStreak = 0;
-    public volatile int reachWindow = 0; // ultimi 6 colpi: bit=1 se oltre limite
+    public volatile int cooldownStreak = 0;
+    public volatile int reachWindow = 0; // ultimi 8 colpi: bit=1 se oltre limite
+    public volatile int wallHitStreak = 0;
+    // Passo 3 interact: uso+colpo, multi-entita, range
+    public volatile int useAttackStreak = 0;
+    public volatile int lastInteractId = -1;
+    public volatile long lastInteractTime = 0;
+    public volatile int multiInteractStreak = 0;
+    public volatile int useRangeStreak = 0;
     public volatile int multitaskStreak = 0;
 
     // world / extra
@@ -38,6 +46,7 @@ public class PlayerData {
     public volatile long lastBreakTime = 0;
     public volatile int fastBreakStreak = 0;
     public final Deque<Long> totemPops = new ConcurrentLinkedDeque<>();
+    public volatile int totemRefillStreak = 0;
 
     // speed: valutazione a finestre (anti-packet-split) + streak
     public volatile double speedPendingDist = 0;
@@ -72,6 +81,13 @@ public class PlayerData {
 
     // esenzione temporanea controlli movimento (knockback, teleport, veicoli, perle...)
     public volatile long exemptUntil = 0;
+    // Fase 3: exempt tipizzati (move vs fight separati) + knockback atteso
+    public volatile long moveExemptUntil = 0;
+    public volatile long fightExemptUntil = 0;
+    public volatile double kbVX = 0;
+    public volatile double kbVY = 0;
+    public volatile double kbVZ = 0;
+    public volatile long kbTime = 0;
 
     // ultima posizione sicura a terra (per il setback)
     public volatile double lastGroundX, lastGroundY, lastGroundZ;
@@ -120,11 +136,36 @@ public class PlayerData {
     public volatile long lastHeldChange = 0;
     public volatile int swapStreak = 0;
     public volatile int mineStreak = 0;
+    public volatile int dpsStreak = 0;
     public volatile long lastBreakTick = -1;
     public volatile int breakTickCount = 0;
     public volatile int multibreakStreak = 0;
     public volatile long lastInvClick = 0;
     public volatile int totemSwapStreak = 0;
+
+    // prediction Fase 1: streak offset + riferimento caduta
+    public volatile int predHStreak = 0;
+    public volatile int predVStreak = 0;
+    public volatile int predHoverStreak = 0;
+    public volatile double predFallRefY = 0;
+    public volatile int predFallRefTicks = 0;
+
+    // Fase 2 P2 (packet order): timestamp ultimo flying/swing pacchetto
+    public volatile long pktLastFlying = 0;
+    public volatile long pktLastSwing = 0;
+    public volatile int pktOrderStreak = 0;
+    public volatile int pktNoSwingStreak = 0;
+    public volatile int pktGroundStreak = 0;
+
+    // Fase 2 P3 (rotation stream raw dai LOOK)
+    public volatile boolean rotInit = false;
+    public volatile float rotLastYaw = 0;
+    public volatile float rotLastPitch = 0;
+    public volatile int rotSnapStreak = 0;
+    public volatile int rotLockStreak = 0;
+    public volatile int rotDupStreak = 0;
+    public volatile int rotGcdStreak = 0;
+    public volatile int rotGcdWindows = 0;
 
     // violazioni: check -> VL
     public final ConcurrentHashMap<String, Integer> violations = new ConcurrentHashMap<>();

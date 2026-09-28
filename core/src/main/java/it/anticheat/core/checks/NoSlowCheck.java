@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /** NoSlow: veloce dove dovresti essere lento. Tre segnali indipendenti. */
 public class NoSlowCheck extends Check {
@@ -16,7 +17,7 @@ public class NoSlowCheck extends Check {
             data.noSlowStreak = 0;
             return 0;
         }
-        if (ctx.ping > 350 || ctx.dtMillis <= 0 || ctx.dtMillis > 600) return 0;
+        if (ctx.dtMillis <= 0 || ctx.dtMillis > 600) return 0;
         double speed = ctx.distXZ / (ctx.dtMillis / 1000.0);
         // A) item/scudo: mangiando/arco vanilla cammini a ~1.3-2.5
         boolean itemSlow = (ctx.blocking || ctx.usingItem) && speed > 4.5;
@@ -27,7 +28,7 @@ public class NoSlowCheck extends Check {
         boolean soulSlow = ctx.soulSand && !ctx.soulSpeed && ctx.onGround && speed > 4.0;
         if (itemSlow || webSlow || soulSlow) {
             data.noSlowStreak++;
-            if (data.noSlowStreak >= 4) {
+            if (data.noSlowStreak >= LatencyComp.needStreak(ctx.ping, 4)) {
                 data.noSlowStreak = 0;
                 return 3;
             }

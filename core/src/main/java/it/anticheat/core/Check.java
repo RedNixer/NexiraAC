@@ -25,7 +25,7 @@ public abstract class Check {
         public boolean inCobweb = false; // ragnatela/neve (solo Paper per ora)
         public boolean soulSand = false; // piedi su soul sand (solo Paper per ora)
         public boolean soulSpeed = false; // stivali soul speed (solo Paper per ora)
-        public int speedAmp = -1; // pozione Speed: amplifier, -1 = nessuna (solo Paper per ora)
+        public int speedAmp = -1; // pozione Speed: amplifier, -1 = nessuna (default sicuro)
         public boolean onGround;
         public boolean flying;      // allowFlight / gamemode creativa
         public boolean inWater;
@@ -48,6 +48,8 @@ public abstract class Check {
         public double ax; // posizione attaccante al colpo (serve all'AimLock)
         public double ay;
         public double az;
+        public float attackCooldown = -1; // 0-1 vanilla (1 = carico pieno), -1 = non disponibile
+        public boolean throughWall = false; // raytrace occhio->target bloccato (solo Paper+PL)
         public int ping;
     }
 

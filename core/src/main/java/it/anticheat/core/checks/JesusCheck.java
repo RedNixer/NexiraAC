@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /** Jesus: in piedi sul liquido senza nuotare (piedi asciutti + liquido sotto). */
 public class JesusCheck extends Check {
@@ -13,12 +14,9 @@ public class JesusCheck extends Check {
     @Override
     public int checkMove(PlayerData data, MoveContext ctx) {
         if (ctx.flying || ctx.gliding || ctx.riding) return 0;
-        if (ctx.ping > 350) return 0;
-        // piedi asciutti + liquido sotto + dichiara terra + non nuota = Jesus.
-        // Chi sta DENTRO l'acqua (piedi nel liquido) e escluso: niente FP guadi.
         if (ctx.onGround && ctx.liquidBelow && !ctx.liquidFeet && !ctx.swimming) {
             data.jesusStreak++;
-            if (data.jesusStreak >= 6) {
+            if (data.jesusStreak >= LatencyComp.needStreak(ctx.ping, 6)) {
                 data.jesusStreak = 0;
                 return 4;
             }

@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /**
  * Speed orizzontale con valutazione a finestre da 120ms + streak.
@@ -25,11 +26,18 @@ public class SpeedCheck extends Check {
             data.speedWasGround = ctx.onGround;
             return 0;
         }
-        if (ctx.ping > 350 || ctx.dtMillis <= 0 || ctx.dtMillis > 600) {
+        if (ctx.dtMillis <= 0 || ctx.dtMillis > 600) {
             reset(data);
             data.speedWasGround = ctx.onGround;
             return 0;
         }
+        // knockback atteso (Fase 3): sottratto alla distanza invece di
+        // spegnere tutto — niente più falsi su colpi subiti, niente buco.
+        double[] kb = it.anticheat.core.AnticheatCore.consumeKnockback(data, ctx.ping);
+        double kbXZ = Math.sqrt(kb[0] * kb[0] + kb[2] * kb[2]);
+        // margine ping continuo sui b/s (prima: return 0 sopra 350 =
+        // invisibilità). Lo streak allungato fa il resto del lavoro.
+        double pingBonus = LatencyComp.margin(ctx.ping) * 2.0;
         long now = System.currentTimeMillis();
 
         // Hop rhythm: decollo (terra->aria spingendo su) a ritmo meccanico.
@@ -56,14 +64,17 @@ public class SpeedCheck extends Check {
         // restano sopra comunque. Senza pozione i limiti sono 9.5 / 12.0.
         double potionBonus = ctx.speedAmp >= 0 ? 2.2 * (ctx.speedAmp + 1) : 0;
         double hillBonus = ctx.dy < -1.0 ? 2.0 : 0;
-        double lim = 9.5 + potionBonus + hillBonus;
-        double hard = 12.0 + potionBonus + hillBonus;
-        if (speed > hard) data.speedStreak += 2;
-        else if (speed > lim) data.speedStreak++;
+        double lim = 9.5 + potionBonus + hillBonus + pingBonus;
+        double hard = 12.0 + potionBonus + hillBonus + pingBonus;
+        // distanza coperta dal knockback atteso: fuori dal giudizio
+        double kbSpeed = kbXZ / Math.max(0.05, data.speedPendingMs <= 0 ? 0.12 : data.speedPendingMs / 1000.0);
+        double speedAdj = Math.max(0, speed - kbSpeed);
+        if (speedAdj > hard) data.speedStreak += 2;
+        else if (speedAdj > lim) data.speedStreak++;
         else {
             data.speedStreak = Math.max(0, data.speedStreak - 1);
         }
-        if (data.speedStreak >= 2) {
+        if (data.speedStreak >= LatencyComp.needStreak(ctx.ping, 2)) {
             data.speedStreak = 0;
             return speed > hard ? 6 : 2;
         }

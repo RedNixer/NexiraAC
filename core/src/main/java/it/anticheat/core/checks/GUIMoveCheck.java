@@ -3,6 +3,7 @@ package it.anticheat.core.checks;
 import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
+import it.anticheat.core.physics.LatencyComp;
 
 /** GUIMove: si muove a terra con l'inventario aperto (vanilla sta fermo). */
 public class GUIMoveCheck extends Check {
@@ -17,11 +18,10 @@ public class GUIMoveCheck extends Check {
             data.guiMoveStreak = 0;
             return 0;
         }
-        if (ctx.ping > 350) return 0;
         // camminata = ~0.21/move, sprint ~0.28: sopra 0.18 ci si muove davvero
         if (ctx.distXZ > 0.18) {
             data.guiMoveStreak++;
-            if (data.guiMoveStreak >= 5) {
+            if (data.guiMoveStreak >= LatencyComp.needStreak(ctx.ping, 5)) {
                 data.guiMoveStreak = 0;
                 return 3;
             }
