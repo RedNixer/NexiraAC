@@ -22,6 +22,10 @@ public class AnticheatConfig {
 
     public List<UUID> adminUuids = new ArrayList<>();
     public boolean usePermissionToo = true;
+    /** UUID esenti dai controlli (tester): separati dagli admin. */
+    public List<UUID> exemptUuids = new ArrayList<>();
+    /** Se true, ogni flag vlAdd>=4 va in chat a tutti gli OP, non solo con verbose. */
+    public boolean announceAll = false;
     public int warnVl = 20;
     public int kickVl = 50;
     public int banVl = 100;
@@ -64,6 +68,9 @@ public class AnticheatConfig {
             + "  uuids:\n"
             + "    - \"00000000-0000-0000-0000-000000000000\" # <-- metti qui gli UUID staff\n"
             + "  use-permission-too: true # fallback a permesso 'anticheat.admin' / LuckPerms\n"
+            + "exempt:\n"
+            + "  uuids: [] # tester esenti dai controlli (non admin, solo skip check)\n"
+            + "announce-all: false # se true: ogni flag grave va in chat a tutti gli OP\n"
             + "punishments:\n"
             + "  warn-vl: 20\n"
             + "  kick-vl: 50\n"
@@ -123,34 +130,52 @@ public class AnticheatConfig {
             return c;
         }
         boolean inUuids = false;
+        boolean inExemptUuids = false;
         boolean inChecks = false;
+        String lastTopSection = "";
         for (String raw : Files.readAllLines(file)) {
             String line = raw.trim();
             if (line.startsWith("#") || line.isEmpty()) continue;
-            if (line.equals("checks:")) { inChecks = true; inUuids = false; continue; }
+            if (line.equals("checks:")) { inChecks = true; inUuids = false; inExemptUuids = false; continue; }
+            if (line.equals("exempt:")) { lastTopSection = "exempt"; inExemptUuids = false; inUuids = false; inChecks = false; continue; }
             if (!raw.isEmpty() && raw.charAt(0) != ' ' && line.contains(":") && !line.startsWith("-")) {
                 inChecks = false; // nuova sezione top-level
             }
             if (line.startsWith("uuids:")) {
                 String rest = line.substring("uuids:".length()).trim();
+                // exempt/uuids (sotto sezione exempt:) vs admins/uuids: l'indentazione
+                // decide — ma semplice: se la riga "exempt:" e apparsa dopo l'ultimo
+                // "admins:", siamo in exempt. Tracciamo con sezione corrente.
+                boolean isExempt = lastTopSection.equals("exempt");
                 if (rest.startsWith("[")) {
                     // formato inline: uuids: ["uuid1", "uuid2"]
                     for (String part : rest.replaceAll("[\\[\\]]", "").split(",")) {
-                        try { c.adminUuids.add(UUID.fromString(part.trim().replace("\"", "").replace("'", ""))); }
-                        catch (IllegalArgumentException ignored) {}
+                        try {
+                            UUID u = UUID.fromString(part.trim().replace("\"", "").replace("'", ""));
+                            if (isExempt) c.exemptUuids.add(u); else c.adminUuids.add(u);
+                        } catch (IllegalArgumentException ignored) {}
                     }
                     inUuids = false;
+                    inExemptUuids = false;
                 } else {
-                    inUuids = true;
+                    if (isExempt) { inExemptUuids = true; inUuids = false; }
+                    else { inUuids = true; inExemptUuids = false; }
                 }
                 continue;
             }
-            if (inUuids && line.startsWith("-")) {
+            if (line.equals("admins:")) { lastTopSection = "admins"; continue; }
+            if ((inUuids || inExemptUuids) && line.startsWith("-")) {
                 String id = line.substring(1).trim().replace("\"", "").replace("'", "");
-                try { c.adminUuids.add(UUID.fromString(id)); } catch (IllegalArgumentException ignored) {}
+                try {
+                    UUID u = UUID.fromString(id);
+                    if (inExemptUuids) c.exemptUuids.add(u); else c.adminUuids.add(u);
+                } catch (IllegalArgumentException ignored) {}
                 continue;
             }
-            if (inUuids && !line.startsWith("-") && line.contains(":")) inUuids = false;
+            if ((inUuids || inExemptUuids) && !line.startsWith("-") && line.contains(":")) {
+                inUuids = false;
+                inExemptUuids = false;
+            }
             if (inChecks && line.contains(":")) {
                 String[] kv = line.split(":", 2);
                 if (kv.length == 2) {
@@ -180,6 +205,7 @@ public class AnticheatConfig {
             else if (line.startsWith("min-version:")) c.clientMinVersion = line.split(":", 2)[1].trim().replace("\"", "").replace("'", "");
             else if (line.startsWith("verbose:")) c.verbose = line.contains("true");
             else if (line.startsWith("use-permission-too:")) c.usePermissionToo = !line.contains("false");
+            else if (line.startsWith("announce-all:")) c.announceAll = line.contains("true");
         }
         return c;
     }
@@ -298,6 +324,13 @@ public class AnticheatConfig {
         if (adminUuids.isEmpty()) sb.append("    - \"00000000-0000-0000-0000-000000000000\"\n");
         for (UUID u : adminUuids) sb.append("    - \"").append(u).append("\"\n");
         sb.append("  use-permission-too: ").append(usePermissionToo).append("\n");
+        sb.append("exempt:\n  uuids:");
+        if (exemptUuids.isEmpty()) sb.append(" []\n");
+        else {
+            sb.append("\n");
+            for (UUID u : exemptUuids) sb.append("    - \"").append(u).append("\"\n");
+        }
+        sb.append("announce-all: ").append(announceAll).append("\n");
         sb.append("punishments:\n");
         sb.append("  warn-vl: ").append(warnVl).append("\n");
         sb.append("  kick-vl: ").append(kickVl).append("\n");

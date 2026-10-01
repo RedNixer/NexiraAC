@@ -197,10 +197,23 @@ public class AcCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "download" -> p.sendMessage("§aScarica la mod client da Modrinth (anticheat-client) e mettila in mods/. Poi rientra per il badge verificato.");
+            case "vanish" -> {
+                boolean on = it.anticheat.paper.listener.StaffMode.toggle(p);
+                p.sendMessage(on
+                    ? "§aVanish ON: sei invisibile ai non-admin. Click destro su un player per vedere il suo inventario."
+                    : "§eVanish OFF: di nuovo visibile.");
+            }
+            case "inv" -> {
+                if (args.length < 2) { p.sendMessage("§eUso: /ac inv <player>"); return true; }
+                Player t = Bukkit.getPlayer(args[1]);
+                if (t == null) { p.sendMessage("§cPlayer offline."); return true; }
+                p.openInventory(t.getInventory());
+                p.sendMessage("§7Inventario di §f" + t.getName() + " §7(live).");
+            }
             case "stats" -> sendStats(p, args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : p);
             case "reload" -> p.sendMessage("§eUso in-game: /ac reload (serve OP). Da console: ac reload");
             case "add" -> p.sendMessage("§eUso: /ac add <giocatore> (serve OP o admin). Da console: ac add <giocatore>");
-            default -> p.sendMessage("§e/ac [gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|reload|add]");
+            default -> p.sendMessage("§e/ac [gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|reload|add]");
         }
         return true;
     }
@@ -255,7 +268,7 @@ public class AcCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "reports", "cps", "testmode", "experimental", "download", "reload", "add"))
+            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "reports", "cps", "testmode", "experimental", "download", "vanish", "inv", "reload", "add"))
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
         } else if (args.length == 2
                 && (args[0].equalsIgnoreCase("vl") || args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("debug"))) {

@@ -302,6 +302,8 @@ public class AnticheatCore {
         d.speedPendingMs = 0;
         d.speedStreak = 0;
         d.airTicks = 0;
+        d.airMs = 0;
+        d.flyUpStreak = 0;
         d.pendingFallDist = 0;
         d.groundSpoofStreak = 0;
         d.predHStreak = 0;

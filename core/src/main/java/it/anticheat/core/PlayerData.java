@@ -19,6 +19,7 @@ public class PlayerData {
     public volatile boolean hasLastPos = false;
     public volatile long lastMoveTime = 0;
     public volatile int airTicks = 0;
+    public volatile long airMs = 0;
     public volatile double fallStartY = 0;
     public volatile boolean wasOnGround = true;
 
@@ -100,6 +101,9 @@ public class PlayerData {
     public volatile long pendingFallTime = 0;
     public volatile long lastFallDamageTime = 0;
     public volatile int groundSpoofStreak = 0;
+
+    // fly: salita sostenuta (streak, non singolo picco)
+    public volatile int flyUpStreak = 0;
 
     // autoclicker cps
     public volatile int clickCpsStreak = 0;

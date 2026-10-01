@@ -12,6 +12,7 @@ import it.anticheat.paper.listener.ClientChannelListener;
 import it.anticheat.paper.listener.CombatListener;
 import it.anticheat.paper.listener.JoinQuitListener;
 import it.anticheat.paper.listener.MovementListener;
+import it.anticheat.paper.listener.StaffMode;
 import it.anticheat.paper.listener.WorldListener;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -84,14 +85,19 @@ public class AnticheatPaper extends JavaPlugin {
 
             @Override
             public void notifyStaff(String message) {
+                // Fase A: console SEMPRE (parita Fabric).
+                getLogger().info(message.replaceAll("§.", ""));
                 for (Player p : Bukkit.getOnlinePlayers()) {
                     if (isAdmin(p)) p.sendMessage(message);
                 }
             }
         });
 
-        // Esenti dai controlli: permesso anticheat.exempt (staff/tester)
+        // Esenti dai controlli: permesso anticheat.exempt + lista exempt-uuids (Fase A).
         AnticheatCore.get().setExemptChecker(uuid -> {
+            try {
+                if (AnticheatCore.get().config().exemptUuids.contains(uuid)) return true;
+            } catch (Throwable ignored) {}
             Player pl = Bukkit.getPlayer(uuid);
             return pl != null && pl.hasPermission("anticheat.exempt");
         });
@@ -115,6 +121,7 @@ public class AnticheatPaper extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
         getServer().getPluginManager().registerEvents(new CombatListener(), this);
         getServer().getPluginManager().registerEvents(new WorldListener(), this);
+        getServer().getPluginManager().registerEvents(new StaffMode(), this);
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
         getServer().getPluginManager().registerEvents(gui, this);
 

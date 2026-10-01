@@ -94,12 +94,19 @@ in the game `mods/` with Fabric API. Press F8 in game for the staff panel
 
 ## Commands
 
-`/ac gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|reload|add`
+`/ac gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|reload|add`
 — most also work from console without the slash (`ac vl Steve`). Players report with
 `/report <player> <reason>`.
 
 Permissions: `anticheat.admin` (default op), `anticheat.exempt` (bypass all checks),
 `anticheat.report` (default true).
+
+## Staff mode (Paper)
+
+`/ac vanish` turns you invisible to non-admins (admins still see you) while you keep
+playing in survival. Right-click any player while vanished to open their inventory
+live — what you take is really gone from them, no copy. `/ac inv <player>` opens the
+same view from anywhere, no vanish needed.
 
 ## Config
 
@@ -122,7 +129,8 @@ Fabric mappings download, ~1 GB). Java 21 required.
 Done recently: vanilla movement simulation, latency-as-uncertainty (no more
 ping cutoffs), knockback subtraction, tool-aware mine DPS, packet order +
 rotation stream, PvP pass (reach raytrace, attack cooldown, interact checks),
-AutoTotem post-pop refill.
+AutoTotem post-pop refill, staff vanish with live inventory inspect, Fabric
+jar-in-jar fix (core ships inside the mod jar now).
 
 Next:
 - Fabric parity: 20-tick sampling, mine DPS and inventory clicks on Fabric

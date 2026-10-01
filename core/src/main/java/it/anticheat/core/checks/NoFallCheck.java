@@ -25,12 +25,22 @@ public class NoFallCheck extends Check {
         }
         // A) onGround-spoof: streak allungato col ping (posizioni raggruppate),
         // mai spento: prima sopra 300 era invisibile.
-        if (ctx.onGround && !ctx.groundBelow && ctx.dy < -1.8 && !ctx.inWater && !ctx.onLadder) {
-            data.groundSpoofStreak++;
-            if (data.groundSpoofStreak >= LatencyComp.needStreak(ctx.ping, 6)) {
-                data.groundSpoofStreak = 0;
-                data.wasOnGround = ctx.onGround;
-                return 5;
+        // Fase A2: secondo braccio senza groundBelow per cadute velocissime
+        // (dy < -3 = caduta libera oltre 1 tick): niente sta a terra mentre
+        // precipita a 60+ b/s, anche se sotto c'e un blocco. Copre l'ultimo
+        // campione prima dell'impatto che disinnescava il primo braccio.
+        if (ctx.onGround && !ctx.inWater && !ctx.onLadder) {
+            boolean classic = !ctx.groundBelow && ctx.dy < -1.8;
+            boolean freefall = ctx.dy < -3.0;
+            if (classic || freefall) {
+                data.groundSpoofStreak++;
+                if (data.groundSpoofStreak >= LatencyComp.needStreak(ctx.ping, 6)) {
+                    data.groundSpoofStreak = 0;
+                    data.wasOnGround = ctx.onGround;
+                    return 5;
+                }
+            } else {
+                data.groundSpoofStreak = Math.max(0, data.groundSpoofStreak - 1);
             }
         } else {
             data.groundSpoofStreak = Math.max(0, data.groundSpoofStreak - 1);
@@ -40,8 +50,15 @@ public class NoFallCheck extends Check {
         if (!ctx.onGround && data.wasOnGround && !ctx.inWater && !ctx.onLadder) {
             data.fallStartY = ctx.y;
         }
+        // traccia il picco in aria (Fase A2): il cheat NoFall azzera la
+        // fallDistance del server mandando onGround=true prima dell'impatto,
+        // ma la Y reale scende comunque. Il picco non mente mai.
+        if (!ctx.onGround && !ctx.inWater && !ctx.onLadder && !ctx.flying && !ctx.gliding) {
+            if (ctx.y > data.fallStartY) data.fallStartY = ctx.y;
+        }
 
-        // atterraggio: se caduto da >3.5 blocchi, aspetta il danno
+        // atterraggio: se caduto da >3.5 blocchi, aspetta il danno.
+        // Usa il picco Y reale, non la fallDistance server (spoofabile).
         if (ctx.onGround && !data.wasOnGround && !ctx.inWater && !ctx.onLadder) {
             double fell = data.fallStartY - ctx.y;
             if (fell > 3.5) {
