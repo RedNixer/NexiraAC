@@ -11,7 +11,9 @@ import it.anticheat.paper.gui.AdminGui;
 import it.anticheat.paper.listener.ClientChannelListener;
 import it.anticheat.paper.listener.CombatListener;
 import it.anticheat.paper.listener.JoinQuitListener;
+import it.anticheat.paper.listener.LoginGuard;
 import it.anticheat.paper.listener.MovementListener;
+import it.anticheat.paper.listener.SpamGuard;
 import it.anticheat.paper.listener.StaffMode;
 import it.anticheat.paper.listener.WorldListener;
 import org.bukkit.BanList;
@@ -138,6 +140,11 @@ public class AnticheatPaper extends JavaPlugin {
             } catch (Throwable t) {
                 getLogger().warning("[AC] Hook ProtocolLib fallito: " + t.getMessage());
             }
+            try {
+                new it.anticheat.paper.packet.ExploitBridge(this);
+            } catch (Throwable t) {
+                getLogger().warning("[AC] ExploitBridge fallito: " + t.getMessage());
+            }
         } else {
             getLogger().info("[AC] Modalita solo-eventi (ProtocolLib assente o disattivato).");
         }
@@ -149,6 +156,8 @@ public class AnticheatPaper extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WorldListener(), this);
         getServer().getPluginManager().registerEvents(new StaffMode(), this);
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(new LoginGuard(), this);
+        getServer().getPluginManager().registerEvents(new SpamGuard(), this);
         getServer().getPluginManager().registerEvents(gui, this);
 
         ClientChannelListener channel = new ClientChannelListener(this);
