@@ -332,6 +332,7 @@ public class AnticheatCore {
         d.pktNoSwingStreak = 0;
         d.pktGroundStreak = 0;
         d.rotSnapStreak = 0;
+        d.rotModStreak = 0;
         d.rotLockStreak = 0;
         d.rotDupStreak = 0;
         d.rotGcdStreak = 0;

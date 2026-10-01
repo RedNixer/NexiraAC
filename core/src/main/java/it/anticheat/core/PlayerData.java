@@ -168,6 +168,7 @@ public class PlayerData {
     public volatile float rotLastYaw = 0;
     public volatile float rotLastPitch = 0;
     public volatile int rotSnapStreak = 0;
+    public volatile int rotModStreak = 0;
     public volatile int rotLockStreak = 0;
     public volatile int rotDupStreak = 0;
     public volatile int rotGcdStreak = 0;

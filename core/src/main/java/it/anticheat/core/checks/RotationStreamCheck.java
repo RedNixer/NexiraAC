@@ -15,10 +15,19 @@ public class RotationStreamCheck extends Check {
 
     public int onRotation(PlayerData data, float yaw, float pitch, double distXZ) {
         int out = 0;
-        // D1: fuori range protocollo = iniettato, subito (zero FP)
+        // out-of-range protocol values: two in a row (single spikes are
+        // network garbage; real injections come as a stream)
         if (yaw < -180 || yaw > 180 || pitch < -90 || pitch > 90) {
-            return 6;
+            data.rotModStreak++;
+            if (data.rotModStreak >= 2) {
+                data.rotModStreak = 0;
+                return 6;
+            }
+            data.rotLastYaw = yaw;
+            data.rotLastPitch = pitch;
+            return 0;
         }
+        data.rotModStreak = 0;
         if (!data.rotInit) {
             data.rotInit = true;
             data.rotLastYaw = yaw;
@@ -28,10 +37,11 @@ public class RotationStreamCheck extends Check {
         double yDiff = Check.yawDiff(data.rotLastYaw, yaw);
         double pDiff = Math.abs(data.rotLastPitch - pitch);
 
-        // A) snap istantaneo in un pacchetto
+        // single-packet snaps: 3 in a row (fast legit flicks hit 90+;
+        // bots snap on every shot)
         if (yDiff > 90 || pDiff > 60) {
             data.rotSnapStreak++;
-            if (data.rotSnapStreak >= 2) {
+            if (data.rotSnapStreak >= 3) {
                 data.rotSnapStreak = 0;
                 out = Math.max(out, 5);
             }
