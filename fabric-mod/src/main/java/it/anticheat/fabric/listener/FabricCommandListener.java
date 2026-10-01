@@ -12,6 +12,8 @@ import java.util.UUID;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.players.NameAndId;
+import net.minecraft.server.players.UserBanListEntry;
 
 import static net.minecraft.commands.Commands.argument;
 import static net.minecraft.commands.Commands.literal;
@@ -230,7 +232,25 @@ public final class FabricCommandListener {
                         "Setback-test: min-vl=" + c.setbackMinVl
                             + (saved ? "." : " (salvataggio fallito!)")), false);
                     return 1;
-                })));
+                }))
+                // Punizioni manuali: /ac ban <player> <durata|perm> [motivo]
+                .then(literal("ban").then(argument("player", StringArgumentType.word())
+                    .then(argument("durata", StringArgumentType.word())
+                        .then(argument("motivo", StringArgumentType.greedyString())
+                            .executes(ctx -> staffBan(ctx.getSource(), StringArgumentType.getString(ctx, "player"),
+                                StringArgumentType.getString(ctx, "durata"), StringArgumentType.getString(ctx, "motivo"))))
+                        .executes(ctx -> staffBan(ctx.getSource(), StringArgumentType.getString(ctx, "player"),
+                            StringArgumentType.getString(ctx, "durata"), "Bannato dallo staff")))))
+                .then(literal("kick").then(argument("player", StringArgumentType.word())
+                    .then(argument("motivo", StringArgumentType.greedyString())
+                        .executes(ctx -> staffKick(ctx.getSource(), StringArgumentType.getString(ctx, "player"),
+                            StringArgumentType.getString(ctx, "motivo"))))
+                    .executes(ctx -> staffKick(ctx.getSource(), StringArgumentType.getString(ctx, "player"),
+                        "Espulso dallo staff"))))
+                .then(literal("freeze").then(argument("player", StringArgumentType.word())
+                    .executes(ctx -> staffFreeze(ctx.getSource(), StringArgumentType.getString(ctx, "player"), true))))
+                .then(literal("unfreeze").then(argument("player", StringArgumentType.word())
+                    .executes(ctx -> staffFreeze(ctx.getSource(), StringArgumentType.getString(ctx, "player"), false)))));
             dispatcher.register(literal("report")
                 .then(argument("player", StringArgumentType.word())
                     .then(argument("motivo", StringArgumentType.greedyString())
@@ -250,6 +270,54 @@ public final class FabricCommandListener {
                             return 1;
                         }))));
         });
+    }
+
+    private static int staffBan(net.minecraft.commands.CommandSourceStack src,
+            String name, String durata, String motivo) {
+        long dur = it.anticheat.core.config.PunishmentConfig.parseDurationMs(durata);
+        if (dur == -2) {
+            src.sendFailure(Component.literal("Durata invalida. Esempi: 30m, 12h, 7d, perm"));
+            return 0;
+        }
+        ServerPlayer t = src.getServer().getPlayerList().getPlayerByName(name);
+        if (t == null) {
+            src.sendFailure(Component.literal("Player offline."));
+            return 0;
+        }
+        java.util.Date exp = dur < 0 ? null : new java.util.Date(System.currentTimeMillis() + dur);
+        src.getServer().getPlayerList().getBans().add(new UserBanListEntry(
+            new NameAndId(t.getUUID(), t.getScoreboardName()), null, "AntiCheat", exp, motivo));
+        t.connection.disconnect(Component.literal(motivo));
+        final String msg = name + " bannato " + (exp == null ? "per sempre." : "fino al " + exp + ".");
+        src.sendSuccess(() -> Component.literal(msg), false);
+        return 1;
+    }
+
+    private static int staffKick(net.minecraft.commands.CommandSourceStack src,
+            String name, String motivo) {
+        ServerPlayer t = src.getServer().getPlayerList().getPlayerByName(name);
+        if (t == null) {
+            src.sendFailure(Component.literal("Player offline."));
+            return 0;
+        }
+        t.connection.disconnect(Component.literal(motivo));
+        src.sendSuccess(() -> Component.literal(name + " kickato."), false);
+        return 1;
+    }
+
+    private static int staffFreeze(net.minecraft.commands.CommandSourceStack src,
+            String name, boolean on) {
+        ServerPlayer t = src.getServer().getPlayerList().getPlayerByName(name);
+        if (t == null) {
+            src.sendFailure(Component.literal("Player offline."));
+            return 0;
+        }
+        AnticheatCore.get().data(t.getUUID()).frozen = on;
+        t.sendSystemMessage(Component.literal(on
+            ? "[AC] Sei stato congelato dallo staff. Non muoverti."
+            : "[AC] Scongelato, puoi muoverti."));
+        src.sendSuccess(() -> Component.literal(name + (on ? " congelato." : " scongelato.")), false);
+        return 1;
     }
 
     private static boolean persistConfig() {

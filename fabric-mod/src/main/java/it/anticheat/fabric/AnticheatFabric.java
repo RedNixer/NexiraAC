@@ -39,6 +39,15 @@ public class AnticheatFabric implements ModInitializer {
             cfg = new AnticheatConfig();
         }
         final AnticheatConfig config = cfg;
+        // Punizioni per-check (stesso formato di Paper)
+        try {
+            AnticheatCore.get().setPunishments(
+                it.anticheat.core.config.PunishmentConfig.load(
+                    FabricLoader.getInstance().getConfigDir()
+                        .resolve("anticheat").resolve("punishments.json")));
+        } catch (Exception e) {
+            System.out.println("[AC] punishments illeggibili, uso default: " + e.getMessage());
+        }
 
         AnticheatCore.get().init(config, new MemoryStorage(), new AnticheatCore.ActionHandler() {
             @Override
@@ -61,16 +70,35 @@ public class AnticheatFabric implements ModInitializer {
 
             @Override
             public void ban(UUID player, String reason) {
+                tempban(player, reason, -1);
+            }
+
+            @Override
+            public void tempban(UUID player, String reason, long expiresAtMs) {
                 MinecraftServer srv = FabricState.server();
                 if (srv == null) return;
                 srv.execute(() -> {
                     ServerPlayer p = srv.getPlayerList().getPlayer(player);
                     PlayerList list = srv.getPlayerList();
                     if (p != null) {
+                        java.util.Date exp = expiresAtMs < 0 ? null : new java.util.Date(expiresAtMs);
                         list.getBans().add(new UserBanListEntry(
-                            new NameAndId(p.getUUID(), p.getScoreboardName()), null, "AntiCheat", null, reason));
+                            new NameAndId(p.getUUID(), p.getScoreboardName()), null, "AntiCheat", exp, reason));
                         p.connection.disconnect(Component.literal(reason));
                     }
+                });
+            }
+
+            @Override
+            public void freeze(UUID player, boolean on) {
+                AnticheatCore.get().data(player).frozen = on;
+                MinecraftServer srv = FabricState.server();
+                if (srv == null) return;
+                srv.execute(() -> {
+                    ServerPlayer p = srv.getPlayerList().getPlayer(player);
+                    if (p != null) p.sendSystemMessage(Component.literal(on
+                        ? "[AC] Sei stato congelato dallo staff. Non muoverti."
+                        : "[AC] Scongelato, puoi muoverti."));
                 });
             }
 

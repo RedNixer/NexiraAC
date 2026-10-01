@@ -210,12 +210,86 @@ public class AcCommand implements CommandExecutor, TabCompleter {
                 p.openInventory(t.getInventory());
                 p.sendMessage("§7Inventario di §f" + t.getName() + " §7(live).");
             }
+            case "ban" -> staffBan(p, args);
+            case "kick" -> staffKick(p, args);
+            case "unban" -> staffUnban(p, args);
+            case "freeze" -> staffFreeze(p, args, true);
+            case "unfreeze" -> staffFreeze(p, args, false);
             case "stats" -> sendStats(p, args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : p);
             case "reload" -> p.sendMessage("§eUso in-game: /ac reload (serve OP). Da console: ac reload");
             case "add" -> p.sendMessage("§eUso: /ac add <giocatore> (serve OP o admin). Da console: ac add <giocatore>");
-            default -> p.sendMessage("§e/ac [gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|reload|add]");
+            default -> p.sendMessage("§e/ac [gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|ban|kick|unban|freeze|unfreeze|reload|add]");
         }
         return true;
+    }
+
+    /** /ac ban <player> <30m|12h|7d|30d|12mo|perm> [motivo...] */
+    public static void staffBan(Player staff, String[] args) {
+        if (args.length < 3) {
+            staff.sendMessage("§eUso: /ac ban <player> <durata|perm> [motivo]");
+            staff.sendMessage("§7Durate: 30m, 12h, 7d, 30d, 12mo, perm");
+            return;
+        }
+        String target = args[1];
+        long dur = it.anticheat.core.config.PunishmentConfig.parseDurationMs(args[2]);
+        if (dur == -2) {
+            staff.sendMessage("§cDurata invalida. Esempi: 30m, 12h, 7d, perm");
+            return;
+        }
+        String reason = args.length > 3 ? joinArgs(args, 3) : "Bannato dallo staff";
+        java.util.Date exp = dur < 0 ? null : new java.util.Date(System.currentTimeMillis() + dur);
+        try {
+            Bukkit.getBanList(org.bukkit.BanList.Type.NAME)
+                .addBan(target, reason, exp, staff.getName());
+            Player online = Bukkit.getPlayerExact(target);
+            if (online != null) online.kickPlayer(reason + (exp == null ? "" : " (fino al " + exp + ")"));
+            staff.sendMessage("§a" + target + " bannato " + (exp == null ? "per sempre" : "fino al " + exp) + ".");
+        } catch (Throwable t) {
+            staff.sendMessage("§cBan fallito: " + t.getMessage());
+        }
+    }
+
+    /** /ac kick <player> [motivo...] */
+    public static void staffKick(Player staff, String[] args) {
+        if (args.length < 2) { staff.sendMessage("§eUso: /ac kick <player> [motivo]"); return; }
+        Player t = Bukkit.getPlayerExact(args[1]);
+        if (t == null) { staff.sendMessage("§cPlayer offline."); return; }
+        String reason = args.length > 2 ? joinArgs(args, 2) : "Espulso dallo staff";
+        t.kickPlayer(reason);
+        staff.sendMessage("§a" + t.getName() + " kickato.");
+    }
+
+    /** /ac unban <player> */
+    public static void staffUnban(Player staff, String[] args) {
+        if (args.length < 2) { staff.sendMessage("§eUso: /ac unban <player>"); return; }
+        try {
+            Bukkit.getBanList(org.bukkit.BanList.Type.NAME).pardon(args[1]);
+            staff.sendMessage("§a" + args[1] + " sbannato.");
+        } catch (Throwable t) {
+            staff.sendMessage("§cUnban fallito: " + t.getMessage());
+        }
+    }
+
+    /** /ac freeze|unfreeze <player> */
+    public static void staffFreeze(Player staff, String[] args, boolean on) {
+        if (args.length < 2) {
+            staff.sendMessage("§eUso: /ac " + (on ? "freeze" : "unfreeze") + " <player>");
+            return;
+        }
+        Player t = Bukkit.getPlayerExact(args[1]);
+        if (t == null) { staff.sendMessage("§cPlayer offline."); return; }
+        AnticheatCore.get().data(t.getUniqueId()).frozen = on;
+        t.sendMessage(on ? "§cSei stato congelato dallo staff. Non muoverti." : "§aScongelato, puoi muoverti.");
+        staff.sendMessage(on ? "§a" + t.getName() + " congelato." : "§a" + t.getName() + " scongelato.");
+    }
+
+    private static String joinArgs(String[] args, int from) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = from; i < args.length; i++) {
+            if (i > from) sb.append(' ');
+            sb.append(args[i]);
+        }
+        return sb.toString();
     }
 
     /** Diagnostica live su console per un player (place/break/click/move). */
@@ -268,12 +342,15 @@ public class AcCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "reports", "cps", "testmode", "experimental", "download", "vanish", "inv", "reload", "add"))
+            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "reports", "cps", "testmode", "experimental", "download", "vanish", "inv", "ban", "kick", "unban", "freeze", "unfreeze", "reload", "add"))
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
         } else if (args.length == 2
-                && (args[0].equalsIgnoreCase("vl") || args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("debug"))) {
+                && (args[0].equalsIgnoreCase("vl") || args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("inv") || args[0].equalsIgnoreCase("ban") || args[0].equalsIgnoreCase("kick") || args[0].equalsIgnoreCase("unban") || args[0].equalsIgnoreCase("freeze") || args[0].equalsIgnoreCase("unfreeze"))) {
             for (Player pl : Bukkit.getOnlinePlayers())
                 if (pl.getName().toLowerCase().startsWith(args[1].toLowerCase())) out.add(pl.getName());
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("ban")) {
+            for (String d : List.of("30m", "12h", "7d", "30d", "12mo", "perm"))
+                if (d.startsWith(args[2].toLowerCase())) out.add(d);
         }
         return out;
     }

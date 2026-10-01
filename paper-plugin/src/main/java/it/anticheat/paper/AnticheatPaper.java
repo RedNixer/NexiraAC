@@ -41,6 +41,14 @@ public class AnticheatPaper extends JavaPlugin {
             cfg = new AnticheatConfig();
         }
         final AnticheatConfig config = cfg;
+        // Punizioni per-check (punishments.json, creato col default se manca)
+        try {
+            AnticheatCore.get().setPunishments(
+                it.anticheat.core.config.PunishmentConfig.load(
+                    getDataFolder().toPath().resolve("punishments.json")));
+        } catch (Exception e) {
+            getLogger().warning("Punishments illeggibili, uso default: " + e.getMessage());
+        }
 
         AnticheatCore.get().init(config, new MemoryStorage(), new AnticheatCore.ActionHandler() {
             @Override
@@ -59,11 +67,29 @@ public class AnticheatPaper extends JavaPlugin {
 
             @Override
             public void ban(UUID player, String reason) {
+                tempban(player, reason, -1);
+            }
+
+            @Override
+            public void tempban(UUID player, String reason, long expiresAtMs) {
                 Bukkit.getScheduler().runTask(AnticheatPaper.this, () -> {
                     PlayerData d = AnticheatCore.get().data(player);
-                    Bukkit.getBanList(BanList.Type.NAME).addBan(d.name, reason, null, "AntiCheat");
+                    java.util.Date exp = expiresAtMs < 0 ? null : new java.util.Date(expiresAtMs);
+                    Bukkit.getBanList(BanList.Type.NAME).addBan(d.name, reason, exp, "AntiCheat");
                     Player p = Bukkit.getPlayer(player);
-                    if (p != null) p.kickPlayer(reason);
+                    if (p != null) p.kickPlayer(reason + (exp == null ? "" : " (fino al " + exp + ")"));
+                });
+            }
+
+            @Override
+            public void freeze(UUID player, boolean on) {
+                PlayerData d = AnticheatCore.get().data(player);
+                d.frozen = on;
+                Bukkit.getScheduler().runTask(AnticheatPaper.this, () -> {
+                    Player p = Bukkit.getPlayer(player);
+                    if (p != null) p.sendMessage(on
+                        ? "§cSei stato congelato dallo staff. Non muoverti."
+                        : "§aScongelato, puoi muoverti.");
                 });
             }
 
