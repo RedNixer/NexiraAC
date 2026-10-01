@@ -5,13 +5,7 @@ import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 import it.anticheat.core.physics.LatencyComp;
 
-/**
- * Reach v3 (Passo 1 A3): vanilla max 3.0 + mezzo margine ping.
- * Misura occhio->hitbox dai pacchetti (bridge) o minima piedi/occhio a eventi.
- * Finestra ultimi 8 colpi: 5+ sfori = cheat (stretto da 6/3: i cheat veri
- * sforano sempre, il lag oscilla sopra/sotto e non riempie mai 5/8).
- * Limiti: 3.05 base + meta margine ping (tetto 4.0, era 4.5).
- */
+/** Eye-to-hitbox reach, 3.05 + half ping margin. 5 over-range hits out of 8 = cheat. */
 public class ReachCheck extends Check {
     @Override public String name() { return "Reach"; }
     @Override public CheckType type() { return CheckType.COMBAT; }

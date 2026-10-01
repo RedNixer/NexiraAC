@@ -4,25 +4,7 @@ import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 
-/**
- * RotationStream Fase 2/P3: rotazioni RAW dai pacchetti LOOK, non dagli eventi.
- * Gli eventi Bukkit arrivano campionati e arrotondati; il flusso pacchetti
- * mostra quello che il client manda davvero.
- *
- * A) Snap raw: salto yaw >90 gradi (o pitch >60) in UN singolo pacchetto.
- *    A mano la rotazione e distribuita su più pacchetti; uno snap istantaneo
- *    e silent-rotation che scatta solo al momento del colpo.
- * B) Lock raw: yaw/pitch bit-identici per 20+ pacchetti di fila mentre la
- *    posizione cambia (aim che segue da solo a livello pacchetto).
- * C) GCD zero: delta yaw con resto GCD nullo su scala sensibilità (i movimenti
- *    umani passano sempre per la griglia GCD del mouse; un delta fuori griglia
- *    ripetuto = rotazione iniettata, non mouse reale). Soglia: 8/12 fuori.
- * D1) Modulo-360 (Passo 2): yaw fuori [-180,180] o pitch fuori [-90,90]
- *    anche una volta sola = pacchetto iniettato. Il client vanilla fa clamp
- *    sempre: fuori range e impossibile a mano, zero FP possibili.
- * D2) Duplicate-LOOK (Passo 2): stesso yaw/pitch 5 pacchetti di fila DA FERMO
- *    = pacchetto finto per coprire silent-aim (il lock B copre già il moto).
- */
+/** Raw LOOK packets: one-packet snaps, out-of-range injections, duplicates, off-grid GCD. */
 public class RotationStreamCheck extends Check {
     @Override public String name() { return "RotationStream"; }
     @Override public CheckType type() { return CheckType.COMBAT; }

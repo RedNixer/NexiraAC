@@ -19,16 +19,7 @@ import org.bukkit.util.BoundingBox;
 
 import java.util.UUID;
 
-/**
- * Hook ProtocolLib (OPZIONALE, solo Paper).
- * - Timer preciso: conta i Flying reali (legit 20/s), non gli eventi.
- * - Range preciso: distanza occhio -> hitbox su ogni attacco (killer
- *   degli Hitboxes/Reach), poi riusa la logica Reach/KillAura del core.
- * Ogni listener e isolato in try/catch: se la versione di ProtocolLib o di
- * Minecraft non espone un pacchetto, quel singolo check resta spento e gli
- * altri (piu quelli a eventi) continuano. Tecniche ispirate a Grim,
- * implementazione originale.
- */
+/** ProtocolLib hooks (Paper only, optional). One listener per check, each isolated. */
 public class PacketBridge {
     private final AnticheatPaper plugin;
 
@@ -50,9 +41,7 @@ public class PacketBridge {
 
     private void hookFlying(ProtocolManager protocol) {
         try {
-            // NOTA: niente PacketType.Play.Client.FLYING generico: su 1.21.11
-            // non e registrato (warn "unknown packet" nei log). I 4 tipi
-            // specifici coprono tutto: POSITION, POSITION_LOOK, LOOK, GROUND.
+            // generic FLYING isn't registered on 1.21.11; the 4 specific types cover it
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
                     PacketType.Play.Client.POSITION,
                     PacketType.Play.Client.POSITION_LOOK,
@@ -98,12 +87,12 @@ public class PacketBridge {
                         return;
                     }
                     if (!isAttack) {
-                        // Passo 3 F2/C2: interact non-attacco (stand, frame, trade)
+                        // non-attack interacts go to range validation
                         Bukkit.getScheduler().runTask(plugin,
                             () -> evaluateInteractRange(uuid, pname, entityId));
                         return;
                     }
-                    // P2: ordine pacchetti PRIMA della misura range (thread pacchetto, puro core)
+                    // packet-thread order check first, Bukkit reads on main
                     try {
                         AnticheatCore.get().handlePacketAttack(uuid, pname);
                     } catch (Throwable ignored) {}
@@ -118,13 +107,7 @@ public class PacketBridge {
         }
     }
 
-    /**
-     * P3: flusso rotazioni raw dai LOOK (e POSITION_LOOK).
-     * Legge yaw/pitch dal pacchetto e li passa al core con lo spostamento
-     * orizzontale del tick (per il lock: mira ferma mentre ci si muove).
-     * Ogni lettura e difesa: se la firma non corrisponde, il listener resta
-     * spento senza toccare gli altri.
-     */
+    /** Raw yaw/pitch from LOOK packets. Main thread for real distance. */
     private void hookRotationStream(ProtocolManager protocol) {
         try {
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
@@ -170,7 +153,7 @@ public class PacketBridge {
         }
     }
 
-    /** P2: swing pacchetto (ARM_ANIMATION) per il no-swing check. */
+    /** ARM_ANIMATION swing feed for the no-swing check. */
     private void hookSwing(ProtocolManager protocol) {
         try {
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
@@ -188,11 +171,7 @@ public class PacketBridge {
         }
     }
 
-    /**
-     * P2: flag onGround del pacchetto Flying vs dy reale (NoFall packet).
-     * Legge booleano ground (indice 0) + Y dai POSITION*: se il client dice
-     * terra mentre scende oltre -0.5, e spoof diretto.
-     */
+    /** Packet onGround flag vs real dy: direct NoFall evidence. */
     private void hookGroundSpoof(ProtocolManager protocol) {
         try {
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
@@ -243,7 +222,7 @@ public class PacketBridge {
             return;
         }
         if (target == null) return;
-        // Passo 3 F1: colpo contro sé stessi (prima era return silenzioso)
+        // self-hits used to fall through silently
         if (target.equals(p)) {
             try {
                 AnticheatCore.get().handleInteractAttack(uuid, p.getName(), false, true, entityId);
@@ -283,8 +262,7 @@ public class PacketBridge {
         ctx.distance = eyeDist; // misura precisa: usa distance, eyeDistance resta 0
         ctx.eyeDistance = 0;
         ctx.dtSinceLastAttackMillis = -1; // calcolato dal core
-        // A1: linea di vista occhio->bersaglio. Muro in mezzo = hit-through-wall.
-        // rayTraceBlocks API Bukkit reale; tutto in try/catch (mondi strani, ecc).
+        // eye-to-target blocked by a solid = wall hit
         boolean throughWall = false;
         try {
             org.bukkit.Location targetLoc = target.getLocation().add(0, 1, 0);
@@ -327,7 +305,7 @@ public class PacketBridge {
             ctx.attackCooldown = -1;
         }
         ctx.throughWall = throughWall;
-        // Passo 3 C1: uso-item al momento del colpo (arco teso, cibo, scudo)
+        // raised hand at hit time (bow drawn, food, shield)
         boolean usingItem = false;
         try {
             usingItem = p.isHandRaised();
@@ -350,7 +328,7 @@ public class PacketBridge {
         }
     }
 
-    /** Passo 3 F2/C2: interact non-attacco, misura gittata occhio->entita. Main thread. */
+    /** Non-attack interacts: eye-to-entity range. Main thread. */
     private void evaluateInteractRange(UUID uuid, String pname, int entityId) {
         Player p;
         try {

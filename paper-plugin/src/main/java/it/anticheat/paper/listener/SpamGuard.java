@@ -14,15 +14,7 @@ import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.bukkit.event.player.PlayerEditBookEvent;
 
-/**
- * Livello 4 light — rate limiter gioco (Bukkit puro, niente ProtocolLib).
- * Chat/comandi/tab a raffica = bot, non persone. Libri giganti = book-ban
- * senza passare dalla creativa.
- *
- * - 6 messaggi in 3s: mute 30s (coda, non kick: i player veri litigano).
- * - 8 comandi in 3s: kick (i bot provano permutazioni di comandi).
- * - Libro oltre 20KB totali: droppato + kick (vanilla non ci arriva mai).
- */
+/** Chat/command rate limits plus oversized-book kick. Bukkit only, no ProtocolLib. */
 @SuppressWarnings("deprecation")
 public class SpamGuard implements Listener {
 
@@ -61,7 +53,7 @@ public class SpamGuard implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onCommand(PlayerCommandPreprocessEvent e) {
-        // /ac e /report dello staff non contano (test e debug a raffica)
+        // staff /ac traffic doesn't count
         String msg = e.getMessage().toLowerCase();
         if (msg.startsWith("/ac ") || msg.startsWith("/ac:") || msg.startsWith("/report")) return;
         if (storm(cmds, e.getPlayer().getUniqueId(), 3000, cfg().maxCmdPer3s)) {

@@ -1,19 +1,6 @@
 package it.anticheat.core.physics;
 
-/**
- * Tempi di scavo vanilla Fase 4, pura Java.
- * Formula vanilla: tempoMinimo(tick) = hardness * 1.5 * 20 / speedMultiplier,
- * dove speedMultiplier = toolMult * (1 + 0.3*eff^2+...) * haste * aquaAffinity...
- * Qui versione server-side osservabile: niente posizione/acqua dal client,
- * solo tool + efficiency + haste + fatigue (quelli che l'adapter vede davvero).
- *
- * Semplificazioni oneste (documentate, non nascoste):
- * - beacon haste incluso via hasteAmp (stesso effetto pozione);
- * - mining fatigue incluso come divisore (devastante: pena severa);
- * - in acqua senza aqua affinity: vanilla x5 tempo — l'adapter passa inWater,
- *   qui applicato come x5 se noto;
- * - non in aria: vanilla x5 se non a terra — l'adapter passa onGround.
- */
+/** Vanilla break times from tool + enchants + effects. -1 = insta-break. */
 public final class MiningCalc {
 
     private MiningCalc() {}
@@ -55,10 +42,7 @@ public final class MiningCalc {
         }
     }
 
-    /**
-     * Tempo minimo legittimo in ms per rompere il blocco.
-     * Ritorna -1 se insta-break (hardness<=0): nessun giudizio possibile.
-     */
+    /** Min legal break time in ms. -1 when unbreakable-check makes no sense. */
     public static long minTimeMs(float hardness, String tool, int effLvl,
             int hasteAmp, int fatigueAmp, boolean inWater, boolean onGround) {
         if (hardness <= 0) return -1;

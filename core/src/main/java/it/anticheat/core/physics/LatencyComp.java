@@ -1,17 +1,6 @@
 package it.anticheat.core.physics;
 
-/**
- * Compensazione latenza Fase 3, pura Java.
- * Principio: il ping e incertezza, non innocenza. Invece di spegnere i check
- * sopra una soglia (return 0 = esenzione di fatto per chi lagga o simula lag),
- * la tolleranza cresce in modo continuo col ping e lo streak richiesto
- * si allunga. Un cheater a 400ms deve barare più a lungo e più forte
- * per flaggare, ma non e mai invisibile.
- *
- * Stima margine: a P ms di ping, il client può essere avanti di ~P/2 ms
- * di movimento non ancora visto (one-way delay). A 5.6 b/s sono ~P/2*5.6/1000
- * blocchi di incertezza per movimento. Il margine copre quello + rumore.
- */
+/** Ping is uncertainty, not innocence: margins grow, checks never switch off. */
 public final class LatencyComp {
 
     private LatencyComp() {}

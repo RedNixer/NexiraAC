@@ -62,12 +62,7 @@ public class FastBreakCheck extends Check {
         return 0;
     }
 
-    /**
-     * DPS Fase 4: dt reale danno->rottura vs tempo minimo vanilla per
-     * attrezzo/incanti/effetti. Becca SpeedMine blando (~70%) che i check
-     * a soglia fissa non vedono: scavare al 70% del tempo minimo per 4
-     * blocchi di fila non e umano, e tool maxato.
-     */
+    /** damage->break dt vs vanilla minimum for the tool in hand. */
     public int onDps(PlayerData data, float hardness, long dtMs, String tool,
             int effLvl, int hasteAmp, int fatigueAmp, boolean inWater, boolean onGround) {
         if (dtMs < 0) {
@@ -78,7 +73,7 @@ public class FastBreakCheck extends Check {
             hasteAmp, fatigueAmp, inWater, onGround);
         if (min < 0) {
             data.dpsStreak = 0;
-            return 0; // insta-break: nessun giudizio
+            return 0;
         }
         if (dtMs < min) {
             data.dpsStreak++;

@@ -13,8 +13,7 @@ public class KillAuraCheck extends Check {
 
     @Override
     public int checkFight(PlayerData data, FightContext ctx) {
-        // CPS umanamente impossibile in modo costante (soglia scalata col ping:
-        // col lag i colpi arrivano raggruppati, mai esenzione totale)
+        // CPS umanamente impossibile in modo costante (soglia scalata col ping)
         if (ctx.dtSinceLastAttackMillis >= 0
                 && ctx.dtSinceLastAttackMillis < LatencyComp.auraMinDt(ctx.ping)) {
             data.fastAttackStreak++;
@@ -22,9 +21,7 @@ public class KillAuraCheck extends Check {
         } else {
             data.fastAttackStreak = 0;
         }
-        // B1: cooldown 1.9+ ignorato. Vanilla: danno pieno solo a cooldown 1.0;
-        // colpire a <0.8 di continuo e fisicamente impossibile a mano (il gioco
-        // rallenta i colpi veri). Una killaura a 300ms/colpo sta sempre bassa.
+        // vanilla only deals full damage at full cooldown; staying low is a bot
         if (ctx.attackCooldown >= 0 && ctx.attackCooldown < 0.8) {
             data.cooldownStreak++;
             if (data.cooldownStreak >= 4) {

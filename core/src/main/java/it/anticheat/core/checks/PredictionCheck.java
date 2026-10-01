@@ -5,19 +5,7 @@ import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 import it.anticheat.core.physics.MovementPredictor;
 
-/**
- * Prediction Fase 1: confronta ogni movimento col simulatore vanilla
- * invece di usare soglie fisse. Tre segnali indipendenti:
- * H) distanza orizzontale oltre il max simulato (speed/strafe/timer-orizzontale)
- * V) salita verticale oltre il max simulato (fly-step/jetpack)
- * Hover) discesa molto più lenta della caduta attesa (fly/glide lento)
- *
- * Differenze chiave vs i check a soglia:
- * - il tetto è calcolato per-stato (sprint, pozioni, acqua, scale, ghiaccio)
- *   invece di 9.5/12.0 fissi;
- * - il ping ALLARGA la tolleranza invece di spegnere il check (sopra 300
- *   non ritorna più 0: aggiunge margine e richiede streak più lungo).
- */
+/** Every move vs the vanilla simulator. H: horizontal, V: vertical, hover: slow fall. */
 public class PredictionCheck extends Check {
     @Override public String name() { return "Prediction"; }
     @Override public CheckType type() { return CheckType.MOVEMENT; }
@@ -51,11 +39,11 @@ public class PredictionCheck extends Check {
 
         MovementPredictor.Limit lim = MovementPredictor.predict(in, ctx.dtMillis);
 
-        // ping: margine additivo invece di spegnimento (lag = incertezza, non innocenza)
+        // ping widens tolerance instead of disabling the check
         double pingMargin = ctx.ping > 250 ? 0.6 : (ctx.ping > 120 ? 0.3 : 0.0);
         int needStreak = ctx.ping > 250 ? 4 : 2;
 
-        // H) orizzontale oltre simulazione
+        // H) horizontal over simulation
         if (ctx.distXZ > lim.maxDistXZ + pingMargin) {
             data.predHStreak++;
             if (data.predHStreak >= needStreak) {
@@ -66,7 +54,7 @@ public class PredictionCheck extends Check {
             data.predHStreak = Math.max(0, data.predHStreak - 1);
         }
 
-        // V) salita oltre simulazione (con supporto check: step su terreno ok)
+        // V) climbing over simulation
         if (ctx.dy > lim.maxDyUp + 0.25) {
             data.predVStreak++;
             if (data.predVStreak >= needStreak) {
@@ -77,8 +65,7 @@ public class PredictionCheck extends Check {
             data.predVStreak = Math.max(0, data.predVStreak - 1);
         }
 
-        // Hover: in aria da 20+ tick (1s) senza acqua/scale/ragnatela,
-        // scende molto meno della caduta attesa = volo stazionario lento
+        // Hover: airborne 20+ ticks falling far less than expected
         if (!ctx.onGround && !ctx.inWater && !ctx.inCobweb && data.airTicks > 20) {
             if (data.predFallRefTicks == 0) {
                 data.predFallRefY = ctx.y;

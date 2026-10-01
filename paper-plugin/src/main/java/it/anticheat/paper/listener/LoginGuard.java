@@ -13,15 +13,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-/**
- * Livello 2 — connection/login flood guard.
- * Bot join/quit, nomi impossibili, stesso IP che martella.
- * Niente VL: qui dentro o entri o no.
- *
- * - Max 5 login dallo stesso IP in 10s, poi kick (streak: ban-ip 10 min).
- * - Nomi oltre 16 char o fuori [a-zA-Z0-9_]: kick diretto (vanilla non li fa).
- * - Join/quit 3 volte in 30s dallo stesso account: kick con attesa.
- */
+/** Login flood guard: per-IP rate, bad names, join/quit storms. No VL — in or out. */
 public class LoginGuard implements Listener {
 
     private static it.anticheat.core.config.ProtectionConfig cfg() {
@@ -50,7 +42,7 @@ public class LoginGuard implements Listener {
         } catch (Throwable t) {
             return;
         }
-        // nomi impossibili in vanilla
+        // vanilla never makes these
         if (name == null || name.length() > 16 || !name.matches("[a-zA-Z0-9_]+")) {
             e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, "§cNome non valido.");
             return;
@@ -64,7 +56,6 @@ public class LoginGuard implements Listener {
             fails.addLast(System.currentTimeMillis());
             if (fails.size() >= cfg().loginStrikesForBan) {
                 long banMs = (long) cfg().loginBanMinutes * 60_000;
-                // 3 raffiche in 10 min: ban-ip temporaneo
                 try {
                     Bukkit.getBanList(org.bukkit.BanList.Type.IP)
                         .addBan(ip, "§cTroppi tentativi di connessione.",
@@ -96,6 +87,6 @@ public class LoginGuard implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        // il quit resta nel log per il conteggio join/quit (prune a 30s lo pulisce)
+        // quits stay logged for the join/quit count (30s prune cleans up)
     }
 }

@@ -43,7 +43,7 @@ public class AnticheatPaper extends JavaPlugin {
             cfg = new AnticheatConfig();
         }
         final AnticheatConfig config = cfg;
-        // Punizioni per-check (punishments.json, creato col default se manca)
+        // per-check punishments, created with defaults when missing
         try {
             AnticheatCore.get().setPunishments(
                 it.anticheat.core.config.PunishmentConfig.load(
@@ -51,7 +51,7 @@ public class AnticheatPaper extends JavaPlugin {
         } catch (Exception e) {
             getLogger().warning("Punishments illeggibili, uso default: " + e.getMessage());
         }
-        // Protezione server (protection.json, creato col default se manca)
+        // server protection thresholds, created with defaults when missing
         try {
             AnticheatCore.get().setProtection(
                 it.anticheat.core.config.ProtectionConfig.load(

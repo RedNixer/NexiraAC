@@ -4,18 +4,7 @@ import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 
-/**
- * Interact Passo 3: azioni impossibili sui pacchetti USE_ENTITY.
- * Puro Java, alimentato dal bridge (Paper+PL).
- *
- * C1) Uso+colpo: ATTACK mentre si usa item (mangiare, arco teso, scudo).
- *     Vanilla blocca l'attacco in quello stato: x3 = flag.
- * F1) Self-hit: ATTACK contro sé stessi = client rotto/iniettato, subito.
- * C2) Doppia interazione: due entità diverse entro 50ms = impossibile a mano
- *     (killaura multi-target scriteriata). Streak 3 coppie.
- * F2) Interact-range: USE (non attacco) oltre 4.5 blocchi = reach su
- *     interazioni (stand, item frame, trade da lontano). x3.
- */
+/** Impossible USE_ENTITY sequences: mid-use hits, self-hits, multi-entity, over-range use. */
 public class InteractCheck extends Check {
     @Override public String name() { return "Interact"; }
     @Override public CheckType type() { return CheckType.COMBAT; }

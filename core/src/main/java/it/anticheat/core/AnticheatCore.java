@@ -341,7 +341,7 @@ public class AnticheatCore {
         }
     }
 
-    /** Esenta dai controlli movimento per ms (danni, knockback, perle, riptide...). */
+    /** Move grace in ms (damage, knockback, pearls, riptide...). */
     public void exemptMove(UUID uuid, long ms) {
         long until = System.currentTimeMillis() + ms;
         PlayerData d = data(uuid);
@@ -349,15 +349,12 @@ public class AnticheatCore {
         d.moveExemptUntil = until;
     }
 
-    /** Esenta dai controlli combat per ms (respawn, cambio mondo...). */
+    /** Combat grace in ms (respawn, world change...). */
     public void exemptFight(UUID uuid, long ms) {
         data(uuid).fightExemptUntil = System.currentTimeMillis() + ms;
     }
 
-    /**
-     * Knockback atteso (Fase 3): il vettore viene sottratto al movimento
-     * osservato invece di spegnere i check. Finestra = 1500ms o ping*3.
-     */
+    /** Expected knockback, subtracted from observed movement instead of blanking checks. */
     public void noteKnockback(UUID uuid, double vx, double vy, double vz) {
         PlayerData d = data(uuid);
         d.kbVX = vx;
@@ -366,7 +363,7 @@ public class AnticheatCore {
         d.kbTime = System.currentTimeMillis();
     }
 
-    /** Vettore knockback ancora valido (altrimenti 0). Chiamato dai check move. */
+    /** Knockback still valid, decayed (vanilla loses ~40%/tick airborne). */
     public static double[] consumeKnockback(PlayerData d, int pingMs) {
         long window = Math.max(1500, (long) pingMs * 3);
         if (d.kbTime == 0 || System.currentTimeMillis() - d.kbTime > window) {
@@ -489,7 +486,7 @@ public class AnticheatCore {
         if (o > 0) flag(uuid, "PacketOrder", o, "colpo fuori sequenza/senza swing");
     }
 
-    /** ATTACK via pacchetto: uso-item + self-hit (Passo 3 C1/F1). */
+    /** Packet ATTACK: use-item plus self-hit. */
     public void handleInteractAttack(UUID uuid, String name, boolean usingItem, boolean selfHit, int entityId) {
         if (!isEnabled("Interact") || isExempt(uuid)) return;
         PlayerData d = data(uuid);
@@ -500,7 +497,7 @@ public class AnticheatCore {
         if (m > 0) flag(uuid, "Interact", m, "doppia entita stesso tick");
     }
 
-    /** USE non-attacco via pacchetto: range interazioni (Passo 3 F2). */
+    /** Packet non-attack USE: interact range. */
     public void handleInteractUse(UUID uuid, String name, int entityId, double dist) {
         if (!isEnabled("Interact") || isExempt(uuid)) return;
         PlayerData d = data(uuid);
@@ -577,10 +574,7 @@ public class AnticheatCore {
         if (m > 0) flag(uuid, "FastBreak", m, "duro in " + dt + "ms senza haste");
     }
 
-    /**
-     * DPS mining Fase 4 (Paper): dt danno->rottura vs tempo minimo vanilla
-     * per attrezzo/incanti/effetti. Chiamare PRIMA di handleBlockBreak.
-     */
+    /** damage->break dt vs vanilla minimum for the tool. Call before handleBlockBreak. */
     public void handleMineDps(UUID uuid, String name, float hardness, String key,
             String tool, int effLvl, int hasteAmp, int fatigueAmp,
             boolean inWater, boolean onGround) {

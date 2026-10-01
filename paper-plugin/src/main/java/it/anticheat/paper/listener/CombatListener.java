@@ -99,8 +99,7 @@ public class CombatListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onVelocity(PlayerVelocityEvent e) {
-        // knockback/esplosioni/riptide: vettore atteso nel core (Fase 3) +
-        // tregua breve. Il core sottrae il vettore invece di spegnere tutto.
+        // knockback vector goes to the core (subtracted, not blanked) + short grace
         try {
             org.bukkit.util.Vector v = e.getVelocity();
             AnticheatCore.get().noteKnockback(e.getPlayer().getUniqueId(),

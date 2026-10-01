@@ -223,7 +223,7 @@ public class AcCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
-    /** /ac ban <player> <30m|12h|7d|30d|12mo|perm> [motivo...] */
+    /** /ac ban <player> <30m|12h|7d|30d|12mo|perm> [reason...] */
     public static void staffBan(Player staff, String[] args) {
         if (args.length < 3) {
             staff.sendMessage("§eUso: /ac ban <player> <durata|perm> [motivo]");
@@ -249,7 +249,7 @@ public class AcCommand implements CommandExecutor, TabCompleter {
         }
     }
 
-    /** /ac kick <player> [motivo...] */
+    /** /ac kick <player> [reason...] */
     public static void staffKick(Player staff, String[] args) {
         if (args.length < 2) { staff.sendMessage("§eUso: /ac kick <player> [motivo]"); return; }
         Player t = Bukkit.getPlayerExact(args[1]);

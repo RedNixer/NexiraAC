@@ -8,24 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Punizioni per-check da punishments.json. Parser JSON manuale (come il
- * parser YAML: zero dipendenze, il core resta puro Java).
- *
- * Formato:
- * {
- *   "defaults": { "warnVl": 20, "kickVl": 50, "banVl": 100 },
- *   "checks": {
- *     "KillAura": [
- *       { "vl": 30, "action": "warn" },
- *       { "vl": 60, "action": "kick", "reason": "KillAura rilevata" },
- *       { "vl": 100, "action": "tempban", "duration": "7d", "reason": "KillAura" }
- *     ]
- *   }
- * }
- * Azioni: notify, warn, kick, tempban, ban, freeze. Duration: 30m, 12h, 7d,
- * 12mo, perm (o assente = permanente per ban, ignorata per le altre).
- */
+/** Per-check punishments from punishments.json. Format documented in PUNISHMENTS.md. */
 public class PunishmentConfig {
 
     public static class Rule {
@@ -41,12 +24,12 @@ public class PunishmentConfig {
     /** check -> regole ordinate per vl crescente. */
     public final Map<String, List<Rule>> checks = new LinkedHashMap<>();
 
-    /** Trova la regola piu alta superata dal VL totale per un check. */
+    /** Highest rule with vl <= totalVl, or global-threshold fallback. */
     public Rule match(String check, int totalVl) {
         return match(check, totalVl, defaultWarnVl, defaultKickVl, defaultBanVl);
     }
 
-    /** Come sopra ma con soglie fallback esterne (es. GUI che cambia config.yml). */
+    /** Same with external fallback thresholds. */
     public Rule match(String check, int totalVl, int fbWarn, int fbKick, int fbBan) {
         List<Rule> list = checks.get(check);
         Rule best = null;
@@ -65,10 +48,7 @@ public class PunishmentConfig {
         return f;
     }
 
-    /**
-     * Parsa durate tipo 30m, 12h, 7d, 12mo, perm. Ritorna ms, -1 = permanente,
-     * -2 = formato invalido.
-     */
+    /** 30m, 12h, 7d, 12mo, perm. ms, -1 = permanent, -2 = invalid. */
     public static long parseDurationMs(String s) {
         if (s == null) return -1;
         s = s.trim().toLowerCase();
@@ -126,7 +106,7 @@ public class PunishmentConfig {
             + "}\n";
     }
 
-    /** Carica da file (lo crea col default se manca). */
+    /** Load from file, creating it with defaults when missing. */
     public static PunishmentConfig load(Path file) throws IOException {
         PunishmentConfig c = new PunishmentConfig();
         if (!Files.exists(file)) {
@@ -138,7 +118,7 @@ public class PunishmentConfig {
         return c;
     }
 
-    /** Mini-parser: oggetti {vl, action, duration, reason} dentro "checks". */
+    /** Hand-rolled parser, no dependencies. */
     public void parse(String json) {
         // defaults
         String defBlock = slice(json, "\"defaults\"", "{", "}");

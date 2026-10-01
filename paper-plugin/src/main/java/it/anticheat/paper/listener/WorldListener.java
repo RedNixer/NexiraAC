@@ -76,7 +76,7 @@ public class WorldListener implements Listener {
         org.bukkit.block.Block b = e.getBlock();
         String key = p.getWorld().getName() + ":" + b.getX() + ":" + b.getY() + ":" + b.getZ();
         int before = AnticheatCore.get().data(p.getUniqueId()).totalVl();
-        // DPS Fase 4: attrezzo + efficiency + haste/fatigue reali in mano
+        // real tool + enchants + effects for the DPS check
         String tool = "HAND";
         int effLvl = 0;
         int hasteAmp = -1;
@@ -111,7 +111,7 @@ public class WorldListener implements Listener {
         try { inWater = p.isInWater(); } catch (Throwable ignored) {}
         boolean onGround = true;
         try { onGround = p.isOnGround(); } catch (Throwable ignored) {}
-        // mine-timing PRIMA (legge la mappa danni intatta), poi break (la consuma)
+        // mine-timing first (reads the damage map), break consumes it
         AnticheatCore.get().handleMineTiming(p.getUniqueId(), p.getName(), hardness, key, hasHaste);
         AnticheatCore.get().handleMineDps(p.getUniqueId(), p.getName(), hardness, key,
             tool, effLvl, hasteAmp, fatigueAmp, inWater, onGround);
@@ -157,9 +157,7 @@ public class WorldListener implements Listener {
     public void onTotem(EntityResurrectEvent e) {
         if (e.getEntity() instanceof Player p) {
             AnticheatCore.get().handleTotemPop(p.getUniqueId(), p.getName());
-            // Refill-timing: mano vuota al pop + totem 300ms dopo = macro.
-            // Il pop consuma il totem: se la mano era vuota, un totem che
-            // ricompare in 6 tick e arrivato via inventario scriptato.
+            // the pop eats the totem; one back 6 ticks later is scripted
             boolean hadMain = false;
             boolean hadOff = false;
             try {
@@ -168,11 +166,10 @@ public class WorldListener implements Listener {
                 hadMain = main != null && main.getType() == org.bukkit.Material.TOTEM_OF_UNDYING;
                 hadOff = off != null && off.getType() == org.bukkit.Material.TOTEM_OF_UNDYING;
             } catch (Throwable ignored) {}
-            // al pop il totem si consuma: mano con totem = aveva scorta doppia
-            // (legit); mano vuota = segnale refill da verificare tra 6 tick
+            // snapshot hands; recheck in 6 ticks
             final java.util.UUID uuid = p.getUniqueId();
             final String name = p.getName();
-            // doppia scorta (entrambe le mani): il refill dopo e legittimo
+            // double stock (both hands): the refill after is legit
             final boolean hadDouble = hadMain && hadOff;
             if (plugin != null) {
                 try {
@@ -184,8 +181,7 @@ public class WorldListener implements Listener {
                             org.bukkit.inventory.ItemStack o2 = pl.getInventory().getItemInOffHand();
                             boolean hasNow = (m2 != null && m2.getType() == org.bukkit.Material.TOTEM_OF_UNDYING)
                                 || (o2 != null && o2.getType() == org.bukkit.Material.TOTEM_OF_UNDYING);
-                            // al pop il totem usato sparisce: se ora ce n'e uno e
-                            // prima non c'era scorta, e refill (macro o mano veloce)
+                            // used totem is gone; one here with no double stock = refill
                             AnticheatCore.get().handleTotemRefill(uuid, name, hadDouble, hasNow);
                         } catch (Throwable ignored) {}
                     }, 6L);

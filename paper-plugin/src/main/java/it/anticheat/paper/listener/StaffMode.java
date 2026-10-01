@@ -14,14 +14,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-/**
- * StaffMode: vanish + ispezione inventario dal vivo.
- * Vanish: invisibilità vera (pozione + hidePlayer per tutti i non-admin),
- * gamemode spettatore opzionale no — resta la sopravvivenza così puoi
- * prendere oggetti dall'inventario aperto senza limitazioni creative.
- * Click destro su un player mentre sei in vanish = apri il suo inventario
- * LIVE (condiviso: quello che prendi sparisce davvero a lui).
- */
+/** Vanish plus right-click live inventory inspect. Survival kept so items move for real. */
 public class StaffMode implements Listener {
 
     private static final Set<UUID> VANISHED = ConcurrentHashMap.newKeySet();
@@ -66,7 +59,7 @@ public class StaffMode implements Listener {
         return true;
     }
 
-    /** Nascondi i vanished ai nuovi entrati (non-admin). */
+    /** Hidden from joiners, except fellow admins. */
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         Player joining = e.getPlayer();
@@ -91,7 +84,7 @@ public class StaffMode implements Listener {
         VANISHED.remove(e.getPlayer().getUniqueId());
     }
 
-    /** Freeze punizione: movimento annullato (l'evento e cancellabile). */
+    /** Frozen players don't go anywhere. */
     @EventHandler(ignoreCancelled = false)
     public void onFrozenMove(org.bukkit.event.player.PlayerMoveEvent e) {
         try {
@@ -101,11 +94,8 @@ public class StaffMode implements Listener {
             }
         } catch (Throwable ignored) {}
     }
-
-    /**
-     * Click destro su player in vanish = inventario live del target.
-     * Condiviso: prendi/sposti davvero (niente copia).
-     */    @EventHandler(ignoreCancelled = false)
+    /** Vanished right-click on a player opens their live inventory. */
+    @EventHandler(ignoreCancelled = false)
     public void onInteract(PlayerInteractEntityEvent e) {
         if (!(e.getRightClicked() instanceof Player target)) return;
         Player staff = e.getPlayer();

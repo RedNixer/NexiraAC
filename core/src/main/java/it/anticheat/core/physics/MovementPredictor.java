@@ -1,18 +1,6 @@
 package it.anticheat.core.physics;
 
-/**
- * Simulatore movimento vanilla deterministico, puro Java.
- * Formule fisiche pubbliche di Minecraft (gravita, drag, salto):
- * implementazione originale, nessuna copia da altri anticheat.
- *
- * Modello per tick (1/20s):
- * - aria: vy = (vy - 0.08) * 0.98, drag orizzontale 0.91
- * - terra: drag orizzontale 0.91 * slipperiness (0.6 ghiaccio -> 0.98 combinado)
- * - salto da terra: vy = 0.42 (+0.1 per livello Jump Boost)
- * - sprint+salto: boost orizzontale ~0.2 nella direzione
- * - acqua: vy max affondamento -0.06, nuoto su ~0.3 con sprint
- * Il predictor lavora per-MOVIMENTO (non per-tick): scala sul dt reale.
- */
+/** Vanilla movement limits, pure Java. Per-move (scaled by real dt), not per-tick. */
 public final class MovementPredictor {
 
     private MovementPredictor() {}
@@ -64,10 +52,7 @@ public final class MovementPredictor {
         public double minDyDown;
     }
 
-    /**
-     * Velocità base camminata vanilla: 4.317 b/s cammino, 5.612 sprint,
-     * 1.311 sneak. Scala con Speed/Slowness (+20% per livello).
-     */
+    /** Vanilla walk speeds: 4.317 walk, 5.612 sprint, 1.311 sneak. */
     public static double baseSpeed(boolean sprinting, boolean sneaking, int speedAmp, int slowAmp) {
         double base = sprinting ? 5.612 : (sneaking ? 1.311 : 4.317);
         if (speedAmp >= 0) base *= 1.0 + 0.2 * (speedAmp + 1);
@@ -75,11 +60,7 @@ public final class MovementPredictor {
         return base;
     }
 
-    /**
-     * Limite orizzontale per un movimento di dtMillis.
-     * Include: sprint-jump (0.2 boost accumulato), attrito ridotto in aria,
-     * tolleranza pacchetti spezzati (finestre corte = media rumorosa).
-     */
+    /** Max legal move for the given input and dt. */
     public static Limit predict(Input in, long dtMillis) {
         Limit l = new Limit();
         double dtSec = Math.max(0.01, Math.min(1.0, dtMillis / 1000.0));
@@ -145,11 +126,7 @@ public final class MovementPredictor {
         return l;
     }
 
-    /**
-     * Offset verticale atteso in caduta libera dopo airTicks tick.
-     * Utile per beccare hover: se il player scende molto meno del previsto
-     * per tanti tick di fila, non sta cadendo davvero.
-     */
+    /** Expected fallen blocks after N freefall ticks. */
     public static double expectedFallAfter(int airTicks) {
         double vy = 0;
         double fallen = 0;

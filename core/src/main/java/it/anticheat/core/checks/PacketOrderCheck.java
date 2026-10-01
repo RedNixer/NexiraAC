@@ -4,18 +4,7 @@ import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 
-/**
- * PacketOrder Fase 2: sequenza e coerenza dei pacchetti combat/movimento.
- * Il bridge alimenta i timestamp, qui solo valutazione (puro Java).
- *
- * A) Ordine: un ATTACK senza Flying/movimento nei 1000ms prima e impossibile
- *    (il client manda sempre posizione prima del colpo). Killaura che inietta
- *    pacchetti d'attacco fuori sequenza.
- * B) No-swing pacchetto: ATTACK senza ARM_ANIMATION nei 1000ms prima, x4
- *    (PacketMine/killaura silenziosa che non swinga mai).
- * C) Ground-spoof pacchetto: pacchetto GROUND=true mentre la Y scende oltre
- *    -0.5 nello stesso movimento, x5 (NoFall packet diretto).
- */
+/** Combat packet order: hits without movement/swing, spoofed ground. Bridge feeds, this judges. */
 public class PacketOrderCheck extends Check {
     @Override public String name() { return "PacketOrder"; }
     @Override public CheckType type() { return CheckType.COMBAT; }

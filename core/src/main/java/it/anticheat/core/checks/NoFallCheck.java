@@ -23,12 +23,7 @@ public class NoFallCheck extends Check {
             data.wasOnGround = ctx.onGround;
             return 0;
         }
-        // A) onGround-spoof: streak allungato col ping (posizioni raggruppate),
-        // mai spento: prima sopra 300 era invisibile.
-        // Fase A2: secondo braccio senza groundBelow per cadute velocissime
-        // (dy < -3 = caduta libera oltre 1 tick): niente sta a terra mentre
-        // precipita a 60+ b/s, anche se sotto c'e un blocco. Copre l'ultimo
-        // campione prima dell'impatto che disinnescava il primo braccio.
+        // ground claimed while falling fast; second arm catches freefall samples
         if (ctx.onGround && !ctx.inWater && !ctx.onLadder) {
             boolean classic = !ctx.groundBelow && ctx.dy < -1.8;
             boolean freefall = ctx.dy < -3.0;
