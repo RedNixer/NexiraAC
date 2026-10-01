@@ -26,6 +26,10 @@ import org.bukkit.event.player.PlayerEditBookEvent;
 @SuppressWarnings("deprecation")
 public class SpamGuard implements Listener {
 
+    private static it.anticheat.core.config.ProtectionConfig cfg() {
+        return it.anticheat.core.AnticheatCore.get().protection();
+    }
+
     private final Map<UUID, Deque<Long>> chats = new ConcurrentHashMap<>();
     private final Map<UUID, Deque<Long>> cmds = new ConcurrentHashMap<>();
     private final Map<UUID, Long> mutedUntil = new ConcurrentHashMap<>();
@@ -46,11 +50,12 @@ public class SpamGuard implements Listener {
             e.setCancelled(true);
             return;
         }
-        if (storm(chats, id, 3000, 6)) {
+        if (storm(chats, id, 3000, cfg().maxChatPer3s)) {
             chats.get(id).clear();
-            mutedUntil.put(id, System.currentTimeMillis() + 30_000);
+            mutedUntil.put(id, System.currentTimeMillis() + (long) cfg().chatMuteSeconds * 1000);
             e.setCancelled(true);
-            e.getPlayer().sendMessage("§cStai scrivendo troppo in fretta. Muto 30 secondi.");
+            e.getPlayer().sendMessage("§cStai scrivendo troppo in fretta. Muto "
+                + cfg().chatMuteSeconds + " secondi.");
         }
     }
 
@@ -59,7 +64,7 @@ public class SpamGuard implements Listener {
         // /ac e /report dello staff non contano (test e debug a raffica)
         String msg = e.getMessage().toLowerCase();
         if (msg.startsWith("/ac ") || msg.startsWith("/ac:") || msg.startsWith("/report")) return;
-        if (storm(cmds, e.getPlayer().getUniqueId(), 3000, 8)) {
+        if (storm(cmds, e.getPlayer().getUniqueId(), 3000, cfg().maxCmdPer3s)) {
             cmds.get(e.getPlayer().getUniqueId()).clear();
             e.setCancelled(true);
             final Player p = e.getPlayer();
@@ -76,7 +81,7 @@ public class SpamGuard implements Listener {
             for (String page : e.getNewBookMeta().getPages()) {
                 if (page != null) total += page.length();
             }
-            if (total > 20000) {
+            if (total > cfg().bookMaxChars) {
                 e.setCancelled(true);
                 final Player p = e.getPlayer();
                 Bukkit.getScheduler().runTask(

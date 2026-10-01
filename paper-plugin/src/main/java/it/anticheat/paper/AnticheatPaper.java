@@ -51,6 +51,14 @@ public class AnticheatPaper extends JavaPlugin {
         } catch (Exception e) {
             getLogger().warning("Punishments illeggibili, uso default: " + e.getMessage());
         }
+        // Protezione server (protection.json, creato col default se manca)
+        try {
+            AnticheatCore.get().setProtection(
+                it.anticheat.core.config.ProtectionConfig.load(
+                    getDataFolder().toPath().resolve("protection.json")));
+        } catch (Exception e) {
+            getLogger().warning("Protection illeggibile, uso default: " + e.getMessage());
+        }
 
         AnticheatCore.get().init(config, new MemoryStorage(), new AnticheatCore.ActionHandler() {
             @Override

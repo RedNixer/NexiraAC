@@ -48,6 +48,15 @@ public class AnticheatFabric implements ModInitializer {
         } catch (Exception e) {
             System.out.println("[AC] punishments illeggibili, uso default: " + e.getMessage());
         }
+        // Protezione: su Fabric solo i valori (le guardie sono Paper-only)
+        try {
+            AnticheatCore.get().setProtection(
+                it.anticheat.core.config.ProtectionConfig.load(
+                    FabricLoader.getInstance().getConfigDir()
+                        .resolve("anticheat").resolve("protection.json")));
+        } catch (Exception e) {
+            System.out.println("[AC] protection illeggibile, uso default: " + e.getMessage());
+        }
 
         AnticheatCore.get().init(config, new MemoryStorage(), new AnticheatCore.ActionHandler() {
             @Override

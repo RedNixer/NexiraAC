@@ -24,8 +24,9 @@ import org.bukkit.event.player.PlayerQuitEvent;
  */
 public class LoginGuard implements Listener {
 
-    private static final int MAX_LOGIN_10S = 5;
-    private static final int MAX_JQ_30S = 3;
+    private static it.anticheat.core.config.ProtectionConfig cfg() {
+        return it.anticheat.core.AnticheatCore.get().protection();
+    }
 
     private final Map<String, Deque<Long>> ipLogins = new ConcurrentHashMap<>();
     private final Map<String, Deque<Long>> ipFails = new ConcurrentHashMap<>();
@@ -57,18 +58,20 @@ public class LoginGuard implements Listener {
         Deque<Long> logins = deque(ipLogins, ip);
         prune(logins, 10_000);
         logins.addLast(System.currentTimeMillis());
-        if (logins.size() > MAX_LOGIN_10S) {
+        if (logins.size() > cfg().maxLoginPer10s) {
             Deque<Long> fails = deque(ipFails, ip);
             prune(fails, 600_000);
             fails.addLast(System.currentTimeMillis());
-            if (fails.size() >= 3) {
-                // 3 raffiche in 10 min: ban-ip 10 minuti
+            if (fails.size() >= cfg().loginStrikesForBan) {
+                long banMs = (long) cfg().loginBanMinutes * 60_000;
+                // 3 raffiche in 10 min: ban-ip temporaneo
                 try {
                     Bukkit.getBanList(org.bukkit.BanList.Type.IP)
                         .addBan(ip, "§cTroppi tentativi di connessione.",
-                            new java.util.Date(System.currentTimeMillis() + 600_000), "AntiCheat");
+                            new java.util.Date(System.currentTimeMillis() + banMs), "AntiCheat");
                 } catch (Throwable ignored) {}
-                e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED, "§cTroppi tentativi. Riprova tra 10 minuti.");
+                e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_BANNED,
+                    "§cTroppi tentativi. Riprova tra " + cfg().loginBanMinutes + " minuti.");
             } else {
                 e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
                     "§cConnessioni troppo rapide. Aspetta qualche secondo.");
@@ -82,7 +85,7 @@ public class LoginGuard implements Listener {
         Deque<Long> jq = deque(joinQuit, p.getUniqueId().toString());
         prune(jq, 30_000);
         jq.addLast(System.currentTimeMillis());
-        if (jq.size() > MAX_JQ_30S) {
+        if (jq.size() > cfg().maxJoinQuitPer30s) {
             try {
                 Bukkit.getScheduler().runTask(
                     Bukkit.getPluginManager().getPlugin("AntiCheat"),

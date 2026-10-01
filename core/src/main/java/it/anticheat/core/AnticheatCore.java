@@ -25,6 +25,7 @@ import it.anticheat.core.checks.StepCheck;
 import it.anticheat.core.checks.TimerCheck;
 import it.anticheat.core.checks.XrayCheck;
 import it.anticheat.core.config.AnticheatConfig;
+import it.anticheat.core.config.ProtectionConfig;
 import it.anticheat.core.config.PunishmentConfig;
 import it.anticheat.core.model.Report;
 import it.anticheat.core.model.Violation;
@@ -74,6 +75,7 @@ public class AnticheatCore {
     private final Map<UUID, PlayerData> players = new ConcurrentHashMap<>();
     private AnticheatConfig config = new AnticheatConfig();
     private PunishmentConfig punishments = new PunishmentConfig();
+    private ProtectionConfig protection = new ProtectionConfig();
     private Storage storage = new MemoryStorage();
     private ActionHandler actions = new ActionHandler() {
         @Override public void warn(UUID p, String c, int v) {}
@@ -196,6 +198,10 @@ public class AnticheatCore {
     public PunishmentConfig punishments() { return punishments; }
     public void setPunishments(PunishmentConfig p) {
         if (p != null) this.punishments = p;
+    }
+    public ProtectionConfig protection() { return protection; }
+    public void setProtection(ProtectionConfig p) {
+        if (p != null) this.protection = p;
     }
     public Storage storage() { return storage; }
     public List<Check> checks() { return checks; }

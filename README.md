@@ -104,10 +104,25 @@ Permissions: `anticheat.admin` (default op), `anticheat.exempt` (bypass all chec
 
 ## Staff mode (Paper)
 
-`/ac vanish` turns you invisible to non-admins (admins still see you) while you keep
+/ac vanish turns you invisible to non-admins (admins still see you) while you keep
 playing in survival. Right-click any player while vanished to open their inventory
-live — what you take is really gone from them, no copy. `/ac inv <player>` opens the
+live — what you take is really gone from them, no copy. /ac inv <player> opens the
 same view from anywhere, no vanish needed.
+
+## Server protection (Paper)
+
+Beyond cheaters, the plugin guards the server itself — all thresholds live in
+`protection.json` (created with defaults on first start, same folder as the config):
+
+- Login flood: max logins per IP, join/quit storm, auto IP-ban on repeat.
+  Invalid names are rejected at pre-login.
+- Packet exploits (needs ProtocolLib): creative items with oversized NBT,
+  oversized plugin payloads, inventory-click and tab-complete floods.
+- Spam: chat rate with temp-mute, command rate with kick, oversized books.
+
+A volumetric DDoS can't be stopped by any plugin — that part needs a proxy
+(TCPShield or similar) in front of the server. This covers everything above
+that layer: bots, crash items and flood scripts.
 
 ## Config
 
