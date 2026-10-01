@@ -111,13 +111,15 @@ public class PacketBridge {
     private void hookRotationStream(ProtocolManager protocol) {
         try {
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
-                    PacketType.Play.Client.LOOK,
-                    PacketType.Play.Client.POSITION_LOOK) {
+                    PacketType.Play.Client.LOOK) {
                 @Override
                 public void onPacketReceiving(PacketEvent event) {
                     try {
                         float yaw = event.getPacket().getFloat().read(0);
                         float pitch = event.getPacket().getFloat().read(1);
+                        // malformed floats (wrong signature on some builds): skip, don't flag
+                        if (!Float.isFinite(yaw) || !Float.isFinite(pitch)) return;
+                        if (Math.abs(yaw) > 360 || Math.abs(pitch) > 180) return;
                         UUID uuid = event.getPlayer().getUniqueId();
                         String name = event.getPlayer().getName();
                         double distXZ = 0;
