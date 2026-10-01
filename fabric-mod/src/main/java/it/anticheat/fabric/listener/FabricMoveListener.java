@@ -19,6 +19,14 @@ public final class FabricMoveListener {
                 if (last != null && now - last < 90) continue;
                 double[] prev = FabricState.lastPos.get(p.getUUID());
                 double x = p.getX(), y = p.getY(), z = p.getZ();
+                // Freeze punizione: rimanda dov'era (prev) e salta i check
+                try {
+                    if (AnticheatCore.get().data(p.getUUID()).frozen && prev != null) {
+                        p.teleportTo(prev[0], prev[1], prev[2]);
+                        FabricState.lastTick.put(p.getUUID(), now);
+                        continue;
+                    }
+                } catch (Throwable ignored) {}
                 if (prev != null && last != null) {
                     double dx = x - prev[0], dy = y - prev[1], dz = z - prev[2];
                     double distXZ = Math.sqrt(dx * dx + dz * dz);

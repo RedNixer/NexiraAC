@@ -94,9 +94,10 @@ in the game `mods/` with Fabric API. Press F8 in game for the staff panel
 
 ## Commands
 
-`/ac gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|reload|add`
+`/ac gui|settings|vl|reset|stats|debug|reports|cps|testmode|experimental|download|vanish|inv|ban|kick|unban|freeze|unfreeze|reload|add`
 — most also work from console without the slash (`ac vl Steve`). Players report with
-`/report <player> <reason>`.
+`/report <player> <reason>`. Punishments (per-check rules, durations, manual bans)
+are explained in PUNISHMENTS.md.
 
 Permissions: `anticheat.admin` (default op), `anticheat.exempt` (bypass all checks),
 `anticheat.report` (default true).

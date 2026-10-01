@@ -91,11 +91,21 @@ public class StaffMode implements Listener {
         VANISHED.remove(e.getPlayer().getUniqueId());
     }
 
+    /** Freeze punizione: movimento annullato (l'evento e cancellabile). */
+    @EventHandler(ignoreCancelled = false)
+    public void onFrozenMove(org.bukkit.event.player.PlayerMoveEvent e) {
+        try {
+            if (it.anticheat.core.AnticheatCore.get()
+                    .data(e.getPlayer().getUniqueId()).frozen) {
+                e.setCancelled(true);
+            }
+        } catch (Throwable ignored) {}
+    }
+
     /**
      * Click destro su player in vanish = inventario live del target.
      * Condiviso: prendi/sposti davvero (niente copia).
-     */
-    @EventHandler(ignoreCancelled = false)
+     */    @EventHandler(ignoreCancelled = false)
     public void onInteract(PlayerInteractEntityEvent e) {
         if (!(e.getRightClicked() instanceof Player target)) return;
         Player staff = e.getPlayer();

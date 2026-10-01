@@ -48,6 +48,8 @@ public class PlayerData {
     public volatile int fastBreakStreak = 0;
     public final Deque<Long> totemPops = new ConcurrentLinkedDeque<>();
     public volatile int totemRefillStreak = 0;
+    /** Freeze staff: movimento bloccato (punizione, non check). */
+    public volatile boolean frozen = false;
 
     // speed: valutazione a finestre (anti-packet-split) + streak
     public volatile double speedPendingDist = 0;

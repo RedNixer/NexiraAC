@@ -25,6 +25,7 @@ import it.anticheat.core.checks.StepCheck;
 import it.anticheat.core.checks.TimerCheck;
 import it.anticheat.core.checks.XrayCheck;
 import it.anticheat.core.config.AnticheatConfig;
+import it.anticheat.core.config.PunishmentConfig;
 import it.anticheat.core.model.Report;
 import it.anticheat.core.model.Violation;
 import it.anticheat.core.storage.MemoryStorage;
@@ -44,7 +45,7 @@ public class AnticheatCore {
     private static final AnticheatCore INSTANCE = new AnticheatCore();
     public static AnticheatCore get() { return INSTANCE; }
 
-    public enum Decision { NONE, WARN, KICK, BAN }
+    public enum Decision { NONE, NOTIFY, WARN, KICK, TEMPBAN, BAN, FREEZE }
 
     public interface ActionHandler {
         void warn(UUID player, String check, int totalVl);
@@ -52,6 +53,12 @@ public class AnticheatCore {
         void ban(UUID player, String reason);
         void setback(UUID player);
         void notifyStaff(String message);
+        /** Ban a tempo: expiresAtMs -1 = permanente. Default = ban permanente. */
+        default void tempban(UUID player, String reason, long expiresAtMs) {
+            ban(player, reason);
+        }
+        /** Freeze: true blocca, false sblocca. Default = niente. */
+        default void freeze(UUID player, boolean on) {}
     }
 
     /** Chi e esente dai controlli (gli adapter lo collegano ai permessi). */
@@ -66,6 +73,7 @@ public class AnticheatCore {
     private final List<Check> checks = new ArrayList<>();
     private final Map<UUID, PlayerData> players = new ConcurrentHashMap<>();
     private AnticheatConfig config = new AnticheatConfig();
+    private PunishmentConfig punishments = new PunishmentConfig();
     private Storage storage = new MemoryStorage();
     private ActionHandler actions = new ActionHandler() {
         @Override public void warn(UUID p, String c, int v) {}
@@ -185,6 +193,10 @@ public class AnticheatCore {
     }
 
     public AnticheatConfig config() { return config; }
+    public PunishmentConfig punishments() { return punishments; }
+    public void setPunishments(PunishmentConfig p) {
+        if (p != null) this.punishments = p;
+    }
     public Storage storage() { return storage; }
     public List<Check> checks() { return checks; }
 
@@ -653,17 +665,39 @@ public class AnticheatCore {
             return Decision.NONE;
         }
         Decision dec = Decision.NONE;
-        if (all >= config.banVl) dec = Decision.BAN;
-        else if (all >= config.kickVl) dec = Decision.KICK;
-        else if (all >= config.warnVl) dec = Decision.WARN;
+        String reason = "AntiCheat: cheat rilevato (" + check + " VL " + all + ")";
+        long expiresAt = -1;
+        PunishmentConfig.Rule rule = punishments.match(check, all,
+            config.warnVl, config.kickVl, config.banVl);
+        if (rule != null) {
+            if (!rule.reason.isEmpty()) reason = rule.reason + " (VL " + all + ")";
+            else if (rule.action.equals("warn")) reason = "AntiCheat: sospetto cheat (" + check + ")";
+            else if (rule.action.equals("kick")) reason = "AntiCheat: sospetto cheat (" + check + ")";
+            switch (rule.action) {
+                case "notify" -> dec = Decision.NOTIFY;
+                case "warn" -> dec = Decision.WARN;
+                case "kick" -> dec = Decision.KICK;
+                case "tempban" -> {
+                    dec = Decision.TEMPBAN;
+                    long dur = PunishmentConfig.parseDurationMs(rule.duration);
+                    expiresAt = dur < 0 ? -1 : System.currentTimeMillis() + dur;
+                }
+                case "ban" -> dec = Decision.BAN;
+                case "freeze" -> dec = Decision.FREEZE;
+                default -> dec = Decision.WARN;
+            }
+        }
         if (config.verbose || vlAdd >= 4) {
             actions.notifyStaff("§c[AC] §f" + d.name + " §7" + check + " +"
                 + vlAdd + " (tot " + all + ") " + details);
         }
         switch (dec) {
+            case NOTIFY -> {}
             case WARN -> actions.warn(uuid, check, all);
-            case KICK -> actions.kick(uuid, "AntiCheat: sospetto cheat (" + check + ")");
-            case BAN -> actions.ban(uuid, "AntiCheat: cheat rilevato (" + check + " VL " + all + ")");
+            case KICK -> actions.kick(uuid, reason);
+            case TEMPBAN -> actions.tempban(uuid, reason, expiresAt);
+            case BAN -> actions.ban(uuid, reason);
+            case FREEZE -> actions.freeze(uuid, true);
             default -> {}
         }
         // setback: riporta a terra ai flag movimento sopra soglia (max 1 ogni 2s)
