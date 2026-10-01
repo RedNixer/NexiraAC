@@ -108,12 +108,16 @@ public class PacketBridge {
     }
 
     /** Raw yaw/pitch from LOOK packets. Main thread for real distance. */
+    private volatile boolean rotationBroken = false;
+    private volatile int rotationMismatch = 0;
+
     private void hookRotationStream(ProtocolManager protocol) {
         try {
             protocol.addPacketListener(new PacketAdapter(plugin, ListenerPriority.NORMAL,
                     PacketType.Play.Client.LOOK) {
                 @Override
                 public void onPacketReceiving(PacketEvent event) {
+                    if (rotationBroken) return;
                     try {
                         float yaw = event.getPacket().getFloat().read(0);
                         float pitch = event.getPacket().getFloat().read(1);
@@ -141,6 +145,27 @@ public class PacketBridge {
                                         double dx = p.getLocation().getX() - d.lastX;
                                         double dz = p.getLocation().getZ() - d.lastZ;
                                         real = Math.sqrt(dx * dx + dz * dz);
+                                    } catch (Throwable ignored) {}
+                                    // mapping self-test: raw must track Bukkit.
+                                    // 20 straight mismatches = this PL build maps
+                                    // the floats elsewhere -> kill the hook loudly.
+                                    try {
+                                        float by = p.getLocation().getYaw();
+                                        float bp = p.getLocation().getPitch();
+                                        double yd = Math.abs(by - yaw);
+                                        if (yd > 180) yd = 360 - yd;
+                                        double pd = Math.abs(bp - pitch);
+                                        if (yd > 45 || pd > 45) {
+                                            rotationMismatch++;
+                                            if (rotationMismatch >= 20) {
+                                                rotationBroken = true;
+                                                plugin.getLogger().warning("[AC] Rotation stream disabled: "
+                                                    + "float mapping mismatch on this ProtocolLib build.");
+                                            }
+                                            return;
+                                        } else {
+                                            rotationMismatch = 0;
+                                        }
                                     } catch (Throwable ignored) {}
                                 }
                                 AnticheatCore.get().handlePacketRotation(uuid, name, yaw, pitch, real);
