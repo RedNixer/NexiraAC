@@ -11,7 +11,9 @@ import it.anticheat.paper.gui.AdminGui;
 import it.anticheat.paper.listener.ClientChannelListener;
 import it.anticheat.paper.listener.CombatListener;
 import it.anticheat.paper.listener.JoinQuitListener;
+import it.anticheat.paper.listener.LoginGuard;
 import it.anticheat.paper.listener.MovementListener;
+import it.anticheat.paper.listener.SpamGuard;
 import it.anticheat.paper.listener.StaffMode;
 import it.anticheat.paper.listener.WorldListener;
 import org.bukkit.BanList;
@@ -41,13 +43,21 @@ public class AnticheatPaper extends JavaPlugin {
             cfg = new AnticheatConfig();
         }
         final AnticheatConfig config = cfg;
-        // Punizioni per-check (punishments.json, creato col default se manca)
+        // per-check punishments, created with defaults when missing
         try {
             AnticheatCore.get().setPunishments(
                 it.anticheat.core.config.PunishmentConfig.load(
                     getDataFolder().toPath().resolve("punishments.json")));
         } catch (Exception e) {
             getLogger().warning("Punishments illeggibili, uso default: " + e.getMessage());
+        }
+        // server protection thresholds, created with defaults when missing
+        try {
+            AnticheatCore.get().setProtection(
+                it.anticheat.core.config.ProtectionConfig.load(
+                    getDataFolder().toPath().resolve("protection.json")));
+        } catch (Exception e) {
+            getLogger().warning("Protection illeggibile, uso default: " + e.getMessage());
         }
 
         AnticheatCore.get().init(config, new MemoryStorage(), new AnticheatCore.ActionHandler() {
@@ -138,6 +148,11 @@ public class AnticheatPaper extends JavaPlugin {
             } catch (Throwable t) {
                 getLogger().warning("[AC] Hook ProtocolLib fallito: " + t.getMessage());
             }
+            try {
+                new it.anticheat.paper.packet.ExploitBridge(this);
+            } catch (Throwable t) {
+                getLogger().warning("[AC] ExploitBridge fallito: " + t.getMessage());
+            }
         } else {
             getLogger().info("[AC] Modalita solo-eventi (ProtocolLib assente o disattivato).");
         }
@@ -149,6 +164,8 @@ public class AnticheatPaper extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WorldListener(), this);
         getServer().getPluginManager().registerEvents(new StaffMode(), this);
         getServer().getPluginManager().registerEvents(new JoinQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(new LoginGuard(), this);
+        getServer().getPluginManager().registerEvents(new SpamGuard(), this);
         getServer().getPluginManager().registerEvents(gui, this);
 
         ClientChannelListener channel = new ClientChannelListener(this);

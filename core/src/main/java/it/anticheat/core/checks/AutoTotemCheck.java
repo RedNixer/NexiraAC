@@ -4,14 +4,7 @@ import it.anticheat.core.Check;
 import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 
-/**
- * AutoTotem: tre segnali indipendenti.
- * A) Frequenza: 4 pop in 12s (crystal pvp estremo, tollerante).
- * B) Refill: mano vuota al pop + totem in mano 300ms dopo, x3.
- *    A mano e impossibile: apri inventario, prendi totem, chiudi,
- *    sposta in mano in 300ms mentre esplodi non si fa.
- * C) Swap pre-pop (macro che clicca prima): nel core via lastInvClick.
- */
+/** Pop rate, 300ms post-pop refill, pre-pop inventory swap. */
 public class AutoTotemCheck extends Check {
     @Override public String name() { return "AutoTotem"; }
     @Override public CheckType type() { return CheckType.COMBAT; }

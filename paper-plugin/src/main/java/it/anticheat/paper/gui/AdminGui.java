@@ -51,7 +51,6 @@ public class AdminGui implements Listener {
         CHECK_ICON.put("AutoClicker", Material.NOTE_BLOCK);
         CHECK_ICON.put("FastBreak", Material.DIAMOND_PICKAXE);
         CHECK_ICON.put("AutoTotem", Material.TOTEM_OF_UNDYING);
-        CHECK_ICON.put("XRay", Material.DIAMOND_ORE);
         CHECK_ICON.put("Sprint", Material.RABBIT_FOOT);
         CHECK_ICON.put("NoSlow", Material.SOUL_SAND);
         CHECK_ICON.put("Timer", Material.CLOCK);
@@ -283,12 +282,6 @@ public class AdminGui implements Listener {
             "§b§lNotifiche dettagliate: " + (c.verbose ? "§aON" : "§cOFF"), List.of(
                 "§7Se ON, lo staff vede ogni flag,", "§7altrimenti solo quelli gravi.",
                 "", "§eClick per cambiare")));
-        inv.setItem(16, button(Material.SPYGLASS, "§d§lXRay: §f" + c.xrayPresetName(), List.of(
-            "§7Profilo rilevazione statistica diamanti.",
-            "§7Pietra≥§f" + c.xrayMinStone + " §7diamanti≥§f" + c.xrayMinOres
-                + " §7rapporto>§f" + (c.xrayRatio * 100) + "%",
-            "§7Cooldown: §f" + c.xrayCooldownMin + " min",
-            "", "§eClick per cambiare (Tollerante→Normale→Severo)")));
 
         inv.setItem(32, button(c.testMode ? Material.BEACON : Material.GRAY_DYE,
             "§d§lTest-mode: " + (c.testMode ? "§aON" : "§cOFF"), List.of(
@@ -486,8 +479,6 @@ public class AdminGui implements Listener {
             c.verbose = !c.verbose;
         } else if (slot == 13) {
             c.cycleAutoClicker();
-        } else if (slot == 16) {
-            c.cycleXrayPreset();
         } else if (slot == 32) {
             c.testMode = !c.testMode;
             admin.sendMessage(c.testMode

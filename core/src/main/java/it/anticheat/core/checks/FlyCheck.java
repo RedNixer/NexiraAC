@@ -27,7 +27,10 @@ public class FlyCheck extends Check {
             // Volo creativo = +0.5/tick sostenuto; salto = un picco e basta.
             double ticks = Math.max(1.0, ctx.dtMillis / 50.0);
             double upLimit = 1.4 * ticks;
-            if (ctx.dy > upLimit && ctx.distXZ < 2.0 * ticks) {
+            // slime-bounce: dy alto legit su slime, non e volo
+            if (ctx.softLanding && ctx.dy > 0.5) {
+                data.flyUpStreak = 0;
+            } else if (ctx.dy > upLimit && ctx.distXZ < 2.0 * ticks) {
                 data.flyUpStreak++;
                 // salto legit = 1 picco; volo = salita sostenuta 3 campioni
                 if (data.flyUpStreak >= 3) {

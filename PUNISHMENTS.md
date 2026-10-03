@@ -17,9 +17,6 @@ the first time the server starts — edit it with any text editor, then
       { "vl": 30, "action": "warn", "reason": "KillAura sospetta" },
       { "vl": 60, "action": "kick", "reason": "KillAura rilevata" },
       { "vl": 100, "action": "tempban", "duration": "7d", "reason": "KillAura" }
-    ],
-    "XRay": [
-      { "vl": 2, "action": "notify", "reason": "XRay? controllare" }
     ]
   }
 }
@@ -32,7 +29,7 @@ thresholds (the same ones you can change in `/ac settings`).
 
 ## Actions
 
-- `notify` — staff sees the flag, player notices nothing. Use it for XRay and
+- `notify` — staff sees the flag, player notices nothing. Use it for
   anything you want to review by hand first.
 - `warn` — the player gets a chat warning. Cheap, no harm done.
 - `kick` — kicked with your reason. Rejoin and the VL is still there, so
@@ -67,8 +64,6 @@ server console too (without the slash).
 - Start softer than you think. `warn` at low VL catches misconfigurations
   before they cost you players — a legit player with a laggy connection looks
   a lot like a bad cheater in the logs.
-- Keep XRay on `notify`. Statistical detection is never sure enough to ban on
-  its own; go look at the tunnels with `/ac vl <player>` first.
 - `test-mode: true` in config.yml logs every punishment without applying it.
   Run a day in test-mode after changing thresholds, read the console, then
   enforce.

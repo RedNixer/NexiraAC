@@ -78,6 +78,7 @@ public class PlayerData {
     public volatile boolean invOpen = false;
     public volatile int guiMoveStreak = 0;
     public volatile int sprintStreak = 0;
+    public volatile int stepStreak = 0;
     public volatile int noSlowStreak = 0;
     public volatile int jesusStreak = 0;
     public volatile int spiderStreak = 0;
@@ -103,6 +104,8 @@ public class PlayerData {
     public volatile long pendingFallTime = 0;
     public volatile long lastFallDamageTime = 0;
     public volatile int groundSpoofStreak = 0;
+    public volatile long lastCobwebTime = 0; // ultima volta in ragnatela/neve (attutisce)
+    public volatile String lastNoFallBranch = "-"; // debug: quale branch ha flaggato
 
     // fly: salita sostenuta (streak, non singolo picco)
     public volatile int flyUpStreak = 0;
@@ -111,11 +114,6 @@ public class PlayerData {
     public volatile int clickCpsStreak = 0;
     public volatile long lastCpsFlag = 0;
 
-    // xray statistico
-    public volatile int xrayStone = 0;
-    public volatile int xrayOres = 0;
-    public volatile long xrayLastAlert = 0;
-
     // scaffold yaw-snap
     public volatile double lastPlaceYaw = 0;
     public volatile int placeYawStreak = 0;
@@ -123,6 +121,11 @@ public class PlayerData {
     // killaura yaw-snap
     public volatile double lastAttackYaw = 0;
     public volatile int auraSnapStreak = 0;
+    // killaura anti-smooth (Meteor fluido): regolarita dt, cooldown perfetto, switch target
+    public final Deque<Long> hitDts = new ConcurrentLinkedDeque<>();
+    public volatile int perfectCdStreak = 0;
+    public volatile int lastTargetId = -1;
+    public volatile int targetSwitchStreak = 0;
 
     // fastbreak no-swing
     public volatile int noSwingStreak = 0;
@@ -151,6 +154,10 @@ public class PlayerData {
 
     // prediction Fase 1: streak offset + riferimento caduta
     public volatile int predHStreak = 0;
+    public volatile double predPendingDist = 0;
+    public volatile long predPendingMs = 0;
+    public volatile double lastPredWinSpeed = 0; // ultima finestra H giudicata
+    public volatile double lastPredWinMax = 0;
     public volatile int predVStreak = 0;
     public volatile int predHoverStreak = 0;
     public volatile double predFallRefY = 0;
@@ -159,6 +166,7 @@ public class PlayerData {
     // Fase 2 P2 (packet order): timestamp ultimo flying/swing pacchetto
     public volatile long pktLastFlying = 0;
     public volatile long pktLastSwing = 0;
+    public volatile long lastPacketAttack = 0; // ultimo ATTACK via PL (fallback eventi se morto)
     public volatile int pktOrderStreak = 0;
     public volatile int pktNoSwingStreak = 0;
     public volatile int pktGroundStreak = 0;
@@ -168,10 +176,16 @@ public class PlayerData {
     public volatile float rotLastYaw = 0;
     public volatile float rotLastPitch = 0;
     public volatile int rotSnapStreak = 0;
+    public volatile int rotModStreak = 0;
     public volatile int rotLockStreak = 0;
     public volatile int rotDupStreak = 0;
     public volatile int rotGcdStreak = 0;
     public volatile int rotGcdWindows = 0;
+    public volatile long rotExemptUntil = 0;
+    public volatile long flyStateTime = 0; // ultima vista in creativa/volo (per i bridge pacchetti)
+    /** Cache blocchi per TickEngine/solver (riempita dagli adapter quando serve). */
+    public final it.anticheat.core.physics.BlockCache blockCache =
+        new it.anticheat.core.physics.BlockCache();
 
     // violazioni: check -> VL
     public final ConcurrentHashMap<String, Integer> violations = new ConcurrentHashMap<>();
@@ -179,6 +193,7 @@ public class PlayerData {
     // aim: tracking rotazioni e ultimi colpi
     public volatile double lastMoveYaw = 0;
     public volatile double lastMovePitch = 0;
+    public volatile double lastMoveDistXZ = 0;
     public volatile boolean yawInit = false;
     public final Deque<Long> snapTimes = new ConcurrentLinkedDeque<>();
     public volatile long lastSnapTime = 0;

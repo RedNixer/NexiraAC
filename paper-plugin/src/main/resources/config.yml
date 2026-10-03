@@ -24,7 +24,6 @@ checks: # true = attivo, false = disattivo
   AutoClicker: true
   FastBreak: true
   AutoTotem: true # beta: tolleranza alta
-  XRay: true # statistico: avvisa lo staff, non banna da solo
   Sprint: true
   NoSlow: true
   Timer: true # di fatto solo Paper (su Fabric non scatta)
@@ -38,11 +37,6 @@ experimental-checks: false # attiva i check sperimentali (piu FP)
 tuning: # sensibilita (modificabile anche dalla GUI)
   autoclicker-std: 4.0 # deviazione max click: 2.5 rigido, 4.0 normale, 6.0 largo
   cps-limit: 25 # CPS massimi: sopra (sostenuti ~2s) = macro. Ummano ~25, /ac cps <n> per cambiarlo
-xray:
-  min-stone: 500 # pietra minima scavata prima di giudicare
-  min-ores: 10 # diamanti minimi prima di giudicare
-  ratio: 0.03 # rapporto diamanti/pietra sospetto (0.03 = 3%)
-  cooldown-min: 30 # minuti tra un alert e l'altro (stesso player)
 client-mod:
   required: false # se true, chi non ha la mod viene kickato (sconsigliato)
   min-version: "0.1.0"

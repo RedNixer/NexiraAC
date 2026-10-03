@@ -18,6 +18,8 @@ public class AimSnapCheck extends Check {
 
     @Override
     public int checkMove(PlayerData data, MoveContext ctx) {
+        // snaps only count near attacks (scaffold has its own yaw check)
+        if (System.currentTimeMillis() - data.lastAttackTime > 2000) return 0;
         long now = System.currentTimeMillis();
         int n = 0;
         for (long t : data.snapTimes) {

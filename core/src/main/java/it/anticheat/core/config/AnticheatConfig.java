@@ -16,7 +16,7 @@ public class AnticheatConfig {
     /** Nomi canonici dei check, nello stesso ordine mostrato in GUI. */
     public static final List<String> ALL_CHECKS = List.of(
         "Speed", "Fly", "NoFall", "Step", "Scaffold",
-        "Reach", "KillAura", "AutoClicker", "FastBreak", "AutoTotem", "XRay",
+        "Reach", "KillAura", "AutoClicker", "FastBreak", "AutoTotem",
         "Sprint", "NoSlow", "Timer", "Jesus", "GUIMove",         "Multitask", "Spider",
         "AimSnap", "AimLock", "Prediction", "PacketOrder", "RotationStream", "Interact");
 
@@ -38,11 +38,6 @@ public class AnticheatConfig {
     public double autoClickerStd = 4.0;
     /** Limite CPS: sopra questa soglia (sostenuta) scatta il flag, ovunque. Ummano max ~25. */
     public int cpsLimit = 25;
-    /** XRay statistico: soglie (piu alte = piu tollerante). */
-    public int xrayMinStone = 500;
-    public int xrayMinOres = 10;
-    public double xrayRatio = 0.03;
-    public int xrayCooldownMin = 30;
     /** Setback: riporta a terra ai flag movimento sopra min-vl. */
     public boolean setbackEnabled = true;
     public int setbackMinVl = 15;
@@ -91,7 +86,6 @@ public class AnticheatConfig {
             + "  AutoClicker: true\n"
             + "  FastBreak: true\n"
             + "  AutoTotem: true # beta: tolleranza alta\n"
-            + "  XRay: true # statistico: avvisa lo staff, non banna da solo\n"
             + "  Sprint: true\n"
             + "  NoSlow: true\n"
             + "  Timer: true # di fatto solo Paper (su Fabric non scatta)\n"
@@ -109,11 +103,6 @@ public class AnticheatConfig {
             + "tuning: # sensibilita (modificabile anche dalla GUI)\n"
             + "  autoclicker-std: 4.0 # deviazione max click: 2.5 rigido, 4.0 normale, 6.0 largo\n"
             + "  cps-limit: 25 # CPS massimi: sopra (sostenuti ~2s) = macro. Ummano ~25, /ac cps <n> per cambiarlo\n"
-            + "xray:\n"
-            + "  min-stone: 500 # pietra minima scavata prima di giudicare\n"
-            + "  min-ores: 10 # diamanti minimi prima di giudicare\n"
-            + "  ratio: 0.03 # rapporto diamanti/pietra sospetto (0.03 = 3%)\n"
-            + "  cooldown-min: 30 # minuti tra un alert e l'altro (stesso player)\n"
             + "client-mod:\n"
             + "  required: false # se true, chi non ha la mod viene kickato (sconsigliato)\n"
             + "  min-version: \"0.1.0\"\n"
@@ -192,10 +181,6 @@ public class AnticheatConfig {
             else if (line.startsWith("ban-vl:")) c.banVl = parseInt(line, c.banVl);
             else if (line.startsWith("autoclicker-std:")) c.autoClickerStd = parseDouble(line, c.autoClickerStd);
             else if (line.startsWith("cps-limit:")) c.cpsLimit = parseInt(line, c.cpsLimit);
-            else if (line.startsWith("min-stone:")) c.xrayMinStone = parseInt(line, c.xrayMinStone);
-            else if (line.startsWith("min-ores:")) c.xrayMinOres = parseInt(line, c.xrayMinOres);
-            else if (line.startsWith("ratio:")) c.xrayRatio = parseDouble(line, c.xrayRatio);
-            else if (line.startsWith("cooldown-min:")) c.xrayCooldownMin = parseInt(line, c.xrayCooldownMin);
             else if (line.startsWith("enabled:")) c.setbackEnabled = !line.contains("false");
             else if (line.startsWith("min-vl:")) c.setbackMinVl = parseInt(line, c.setbackMinVl);
             else if (line.startsWith("test-mode:")) c.testMode = line.contains("true");
@@ -218,27 +203,6 @@ public class AnticheatConfig {
     private static double parseDouble(String line, double def) {
         try { return Double.parseDouble(line.split(":", 2)[1].trim()); }
         catch (Exception e) { return def; }
-    }
-
-    /** Preset XRay: 0 tollerante, 1 normale, 2 severo. */
-    public void applyXrayPreset(int level) {
-        if (level == 0) { xrayMinStone = 800; xrayMinOres = 14; xrayRatio = 0.05; xrayCooldownMin = 60; }
-        else if (level == 2) { xrayMinStone = 300; xrayMinOres = 8; xrayRatio = 0.02; xrayCooldownMin = 15; }
-        else { xrayMinStone = 500; xrayMinOres = 10; xrayRatio = 0.03; xrayCooldownMin = 30; }
-    }
-
-    public String xrayPresetName() {
-        if (xrayMinStone == 800 && xrayMinOres == 14 && xrayRatio == 0.05 && xrayCooldownMin == 60) return "Tollerante";
-        if (xrayMinStone == 300 && xrayMinOres == 8 && xrayRatio == 0.02 && xrayCooldownMin == 15) return "Severo";
-        if (xrayMinStone == 500 && xrayMinOres == 10 && xrayRatio == 0.03 && xrayCooldownMin == 30) return "Normale";
-        return "Personalizzato";
-    }
-
-    public void cycleXrayPreset() {
-        String n = xrayPresetName();
-        if (n.equals("Tollerante")) applyXrayPreset(1);
-        else if (n.equals("Normale")) applyXrayPreset(2);
-        else applyXrayPreset(0);
     }
 
     public String autoClickerName() {
@@ -346,11 +310,6 @@ public class AnticheatConfig {
         sb.append("tuning:\n");
         sb.append("  autoclicker-std: ").append(autoClickerStd).append("\n");
         sb.append("  cps-limit: ").append(cpsLimit).append("\n");
-        sb.append("xray:\n");
-        sb.append("  min-stone: ").append(xrayMinStone).append("\n");
-        sb.append("  min-ores: ").append(xrayMinOres).append("\n");
-        sb.append("  ratio: ").append(xrayRatio).append("\n");
-        sb.append("  cooldown-min: ").append(xrayCooldownMin).append("\n");
         sb.append("client-mod:\n");
         sb.append("  required: ").append(clientRequired).append("\n");
         sb.append("  min-version: \"").append(clientMinVersion).append("\"\n");

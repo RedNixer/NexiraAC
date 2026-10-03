@@ -30,6 +30,8 @@ public class CombatListener implements Listener {
         }
         Check.FightContext ctx = new Check.FightContext();
         ctx.distance = dist;
+        try { ctx.targetId = target.getEntityId(); } catch (Throwable t) { ctx.targetId = -1; }
+        try { ctx.targetIsPlayer = target instanceof Player; } catch (Throwable t) { ctx.targetIsPlayer = false; }
         ctx.ax = p.getLocation().getX();
         ctx.ay = p.getLocation().getY();
         ctx.az = p.getLocation().getZ();
@@ -59,13 +61,16 @@ public class CombatListener implements Listener {
         }
         // Con ProtocolLib attivo il fight arriva dai pacchetti (misura precisa
         // occhio->hitbox): salta la versione a eventi per non contare doppio.
+        // MA se il bridge e morto (primary ma zero ATTACK da 10s) gli eventi
+        // tornano primari: mai ciechi. I click restano sempre a eventi.
         // I click restano sempre a eventi (gli swing pacchetto non li tracciamo).
-        if (!AnticheatCore.get().isPacketFightPrimary()) {
+        if (!AnticheatCore.get().isPacketFightPrimary()
+                || !AnticheatCore.get().isPacketFightAlive(p.getUniqueId())) {
             AnticheatCore.get().handleFight(p.getUniqueId(), p.getName(), ctx);
         }
-        // Click registrati su swing e colpi: la valutazione CPS/regolarita
-        // vive nel core (gate combat per le regole ritmiche).
-        AnticheatCore.get().handleClick(p.getUniqueId(), p.getName());
+        // Click SOLO su swing (onSwing): onHit contava il 2o click dello stesso
+        // colpo (CPS x2 + gaps 0/500 che rompevano la std di regolarita).
+        // Killaura senza swing: la becca PacketOrder no-swing, non il CPS.
         if (AnticheatCore.get().isDebug(p.getUniqueId())) {
             PlayerData d = AnticheatCore.get().data(p.getUniqueId());
             Bukkit.getLogger().info("[AC-DBG] fight " + p.getName()
@@ -93,14 +98,29 @@ public class CombatListener implements Listener {
         // niente controlli movimento in quella finestra (il NoFall resta attivo)
         AnticheatCore.get().exemptMove(p.getUniqueId(), 1500);
         if (e.getCause() != EntityDamageEvent.DamageCause.FALL) return;
+        // Atterraggio morbido stile Grim: slime/honey/fieno/letti/ragnatele
+        // assorbono, non il cheat. Azzera il sospeso invece di flaggare.
+        try {
+            org.bukkit.Location feet = p.getLocation();
+            org.bukkit.Material below = feet.clone().subtract(0, 0.51, 0).getBlock().getType();
+            org.bukkit.Material feetMat = feet.getBlock().getType();
+            String bn = below.name();
+            String fn = feetMat.name();
+            boolean soft = bn.contains("SLIME") || bn.contains("HONEY") || bn.contains("HAY")
+                || bn.endsWith("_BED") || fn.contains("COBWEB") || fn.contains("POWDER_SNOW")
+                || bn.contains("SCAFFOLDING");
+            if (soft) {
+                AnticheatCore.get().noteSoftLanding(p.getUniqueId());
+                return;
+            }
+        } catch (Throwable ignored) {}
         AnticheatCore.get().handleFallDamage(p.getUniqueId(), p.getName(),
             p.getFallDistance(), e.getFinalDamage());
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onVelocity(PlayerVelocityEvent e) {
-        // knockback/esplosioni/riptide: vettore atteso nel core (Fase 3) +
-        // tregua breve. Il core sottrae il vettore invece di spegnere tutto.
+        // knockback vector goes to the core (subtracted, not blanked) + short grace
         try {
             org.bukkit.util.Vector v = e.getVelocity();
             AnticheatCore.get().noteKnockback(e.getPlayer().getUniqueId(),

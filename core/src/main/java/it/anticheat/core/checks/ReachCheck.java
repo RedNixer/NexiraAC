@@ -5,13 +5,7 @@ import it.anticheat.core.CheckType;
 import it.anticheat.core.PlayerData;
 import it.anticheat.core.physics.LatencyComp;
 
-/**
- * Reach v3 (Passo 1 A3): vanilla max 3.0 + mezzo margine ping.
- * Misura occhio->hitbox dai pacchetti (bridge) o minima piedi/occhio a eventi.
- * Finestra ultimi 8 colpi: 5+ sfori = cheat (stretto da 6/3: i cheat veri
- * sforano sempre, il lag oscilla sopra/sotto e non riempie mai 5/8).
- * Limiti: 3.05 base + meta margine ping (tetto 4.0, era 4.5).
- */
+/** Eye-to-hitbox reach, 3.05 + half ping margin. 5 over-range hits out of 8 = cheat. */
 public class ReachCheck extends Check {
     @Override public String name() { return "Reach"; }
     @Override public CheckType type() { return CheckType.COMBAT; }
@@ -19,11 +13,12 @@ public class ReachCheck extends Check {
 
     @Override
     public int checkFight(PlayerData data, FightContext ctx) {
-        // A1: colpo attraverso un muro (raytrace bloccato): 2 di fila = cheat.
-        // Il singolo e lag/angolo hitbox, mai flag immediato.
-        if (ctx.throughWall) {
+        // A1: colpo attraverso un muro (raytrace bloccato): 3 di fila oltre 3m.
+        // Sotto i 3m il raytrace borderline (recinti/slab/angoli) flaggava FP:
+        // li copre la finestra distanza. Stile Grim: muri solo oltre soglia.
+        if (ctx.throughWall && ctx.distance > 3.0) {
             data.wallHitStreak++;
-            if (data.wallHitStreak >= 2) {
+            if (data.wallHitStreak >= 3) {
                 data.wallHitStreak = 0;
                 return 5;
             }
