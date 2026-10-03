@@ -149,13 +149,25 @@ Done recently: vanilla movement simulation, latency-as-uncertainty (no more
 ping cutoffs), knockback subtraction, tool-aware mine DPS, packet order +
 rotation stream, PvP pass (reach raytrace, attack cooldown, interact checks),
 AutoTotem post-pop refill, staff vanish with live inventory inspect, Fabric
-jar-in-jar fix (core ships inside the mod jar now).
+jar-in-jar fix (core ships inside the mod jar now). 0.2.5: false-positive
+hunt (low ceilings, ice, sprint attribute, soft landings, combat wiring),
+XRay removed, TickEngine foundations (shared block vocabulary, AABB solver).
 
-Next:
-- Fabric parity: 20-tick sampling, mine DPS and inventory clicks on Fabric
-- Punishments per-check (N:M instead of global thresholds)
-- SQLite/MySQL storage for violations history
-- Web dashboard
+Next, in order:
+- Central punishment manager (mutes/freezes/bans in one place, not scattered)
+- SQLite storage behind the existing `Storage` interface (restart-safe VL,
+  punishments, IP history; MySQL later without touching checks)
+- `/ac alts <player>` — accounts on the same IP, info only, never auto-ban
+  (shared IPs, VPNs and rotating IPv6 make auto-ban a player killer)
+- Punishments GUI (banned/muted/frozen tabs with unban/unmute/unfreeze)
+- TickEngine: hypothesis-based movement simulation on real collisions
+- NPC decoy + combine checks for smooth auras
+- Elytra/vehicle limits, phase detection on the solver
+- Flag replay (`/ac replay`), per-check debug, Geyser awareness
+
+Ideas, not promises: the list moves with what the debug logs say.
+Contributions and false-positive reports welcome — open an issue with
+your `[AC-DBG]` lines and what you were doing.
 
 ## License
 
