@@ -31,6 +31,8 @@ public class AnticheatConfig {
     public int banVl = 100;
     public boolean clientRequired = false;
     public String clientMinVersion = "0.1.0";
+    /** Link appeal mostrato nella schermata ban (vuoto = riga nascosta). */
+    public String appealUrl = "";
     public boolean verbose = false;
     /** Check disattivati = false. Assenti = attivi (default true). */
     public java.util.Map<String, Boolean> checkEnabled = new java.util.HashMap<>();
@@ -47,6 +49,10 @@ public class AnticheatConfig {
     public boolean experimentalChecks = false;
     /** Check pacchetto (ProtocolLib su Paper): master switch, auto-off senza PL. */
     public boolean packetChecks = true;
+    /** Dashboard web locale (sola lettura v1): bind localhost di default. */
+    public boolean dashEnabled = true;
+    public int dashPort = 25596;
+    public String dashBind = "127.0.0.1";
 
     public boolean isAdmin(UUID uuid) {
         return adminUuids.contains(uuid);
@@ -75,6 +81,10 @@ public class AnticheatConfig {
             + "  min-vl: 15\n"
             + "test-mode: false # se true: logga tutto ma non kicka/banna e niente setback\n"
             + "packet-checks: true # solo Paper + ProtocolLib: timer preciso + range preciso\n"
+            + "dashboard: # web locale sola lettura (http://127.0.0.1:25596 + token)\n"
+            + "  enabled: true\n"
+            + "  port: 25596\n"
+            + "  bind: \"127.0.0.1\" # mai 0.0.0.0 senza reverse proxy\n"
             + "checks: # true = attivo, false = disattivo (modificabile anche dalla GUI con /ac)\n"
             + "  Speed: true\n"
             + "  Fly: true\n"
@@ -106,6 +116,7 @@ public class AnticheatConfig {
             + "client-mod:\n"
             + "  required: false # se true, chi non ha la mod viene kickato (sconsigliato)\n"
             + "  min-version: \"0.1.0\"\n"
+            + "appeal-url: \"\" # link appeal nella schermata ban (es. discord.gg/tuoserver)\n"
             + "debug:\n"
             + "  verbose: false\n";
     }
@@ -129,6 +140,8 @@ public class AnticheatConfig {
             if (line.equals("exempt:")) { lastTopSection = "exempt"; inExemptUuids = false; inUuids = false; inChecks = false; continue; }
             if (!raw.isEmpty() && raw.charAt(0) != ' ' && line.contains(":") && !line.startsWith("-")) {
                 inChecks = false; // nuova sezione top-level
+                int ci = line.indexOf(':');
+                if (ci > 0) lastTopSection = line.substring(0, ci).trim();
             }
             if (line.startsWith("uuids:")) {
                 String rest = line.substring("uuids:".length()).trim();
@@ -181,13 +194,25 @@ public class AnticheatConfig {
             else if (line.startsWith("ban-vl:")) c.banVl = parseInt(line, c.banVl);
             else if (line.startsWith("autoclicker-std:")) c.autoClickerStd = parseDouble(line, c.autoClickerStd);
             else if (line.startsWith("cps-limit:")) c.cpsLimit = parseInt(line, c.cpsLimit);
+            else if (line.startsWith("enabled:") && lastTopSection.equals("dashboard")) c.dashEnabled = !line.contains("false");
             else if (line.startsWith("enabled:")) c.setbackEnabled = !line.contains("false");
             else if (line.startsWith("min-vl:")) c.setbackMinVl = parseInt(line, c.setbackMinVl);
             else if (line.startsWith("test-mode:")) c.testMode = line.contains("true");
             else if (line.startsWith("packet-checks:")) c.packetChecks = !line.contains("false");
+            else if (line.startsWith("port:")) c.dashPort = parsePort(line, c.dashPort);
+            else if (line.startsWith("bind:")) c.dashBind = parseHost(line, c.dashBind);
             else if (line.startsWith("experimental-checks:")) c.experimentalChecks = line.contains("true");
             else if (line.startsWith("required:")) c.clientRequired = line.contains("true");
             else if (line.startsWith("min-version:")) c.clientMinVersion = line.split(":", 2)[1].trim().replace("\"", "").replace("'", "");
+            else if (line.startsWith("appeal-url:")) {
+                // URL con :// : prendi tutto dopo la chiave, poi pulisci
+                String u = line.substring("appeal-url:".length()).trim()
+                    .replace("\"", "").replace("'", "");
+                int hash = u.indexOf('#');
+                if (hash >= 0) u = u.substring(0, hash);
+                u = u.trim();
+                if (!u.isEmpty()) c.appealUrl = u;
+            }
             else if (line.startsWith("verbose:")) c.verbose = line.contains("true");
             else if (line.startsWith("use-permission-too:")) c.usePermissionToo = !line.contains("false");
             else if (line.startsWith("announce-all:")) c.announceAll = line.contains("true");
@@ -198,6 +223,38 @@ public class AnticheatConfig {
     private static int parseInt(String line, int def) {
         try { return Integer.parseInt(line.split(":", 2)[1].trim()); }
         catch (Exception e) { return def; }
+    }
+
+    /** Porta: primo token numerico dopo ':', ignora commenti inline. */
+    private static int parsePort(String line, int def) {
+        try {
+            String rest = line.split(":", 2)[1].trim();
+            StringBuilder num = new StringBuilder();
+            for (char ch : rest.toCharArray()) {
+                if (Character.isDigit(ch)) num.append(ch);
+                else if (num.length() > 0) break;
+            }
+            if (num.length() == 0) return def;
+            int p = Integer.parseInt(num.toString());
+            return (p > 0 && p < 65536) ? p : def;
+        } catch (Exception e) {
+            return def;
+        }
+    }
+
+    /** Host: primo token (niente virgolette, niente commenti inline). */
+    private static String parseHost(String line, String def) {
+        try {
+            String rest = line.split(":", 2)[1].trim()
+                .replace("\"", "").replace("'", "");
+            int hash = rest.indexOf('#');
+            if (hash >= 0) rest = rest.substring(0, hash);
+            rest = rest.trim();
+            if (rest.isEmpty()) return def;
+            return rest.split("\\s+")[0];
+        } catch (Exception e) {
+            return def;
+        }
     }
 
     private static double parseDouble(String line, double def) {
@@ -304,6 +361,10 @@ public class AnticheatConfig {
         sb.append("  min-vl: ").append(setbackMinVl).append("\n");
         sb.append("test-mode: ").append(testMode).append("\n");
         sb.append("packet-checks: ").append(packetChecks).append("\n");
+        sb.append("dashboard:\n");
+        sb.append("  enabled: ").append(dashEnabled).append("\n");
+        sb.append("  port: ").append(dashPort).append("\n");
+        sb.append("  bind: \"").append(dashBind).append("\"\n");
         sb.append("checks:\n");
         for (String name : ALL_CHECKS) sb.append("  ").append(name).append(": ").append(isCheckEnabled(name)).append("\n");
         sb.append("experimental-checks: ").append(experimentalChecks).append("\n");
@@ -313,6 +374,7 @@ public class AnticheatConfig {
         sb.append("client-mod:\n");
         sb.append("  required: ").append(clientRequired).append("\n");
         sb.append("  min-version: \"").append(clientMinVersion).append("\"\n");
+        sb.append("appeal-url: \"").append(appealUrl).append("\"\n");
         sb.append("debug:\n");
         sb.append("  verbose: ").append(verbose).append("\n");
         if (file.getParent() != null) Files.createDirectories(file.getParent());

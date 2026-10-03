@@ -28,6 +28,9 @@ Status: `ac dashboard`.
 - **Sessions**: every closed session (connect, disconnect, playtime,
   brand, IP, version), sortable by clicking headers, searchable by
   name or IP. Last 300 kept, lost on restart until SQLite lands.
+- **Player card actions**: warn/kick/tempban/ban with duration + reason,
+  unban, full punishment history. Bans show a Ban ID screen in game
+  (reason, date, expiry, appeal link from `appeal-url:`).
 
 ## Exposing it (hosting)
 

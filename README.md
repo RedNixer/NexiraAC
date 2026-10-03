@@ -71,7 +71,7 @@ dev-build (5.5.0+).
 
 ## Quick start
 
-1. Put `anticheat-paper-0.3.0.jar` in `plugins/` (Paper) **or**
+1. Put `anticheat-paper-0.3.5.jar` in `plugins/` (Paper) **or**
    `fabric-mod-...+mc.1.21.11.jar` in `mods/` (Fabric server). Never both,
    never swapped.
 2. Start once, stop. From console (no slash): `ac add YourName`.
@@ -121,10 +121,10 @@ Fabric mappings, ~1 GB). Java 21 required.
 
 ## Roadmap
 
-Done in 0.2.5–0.3.0: false-positive hunt (low ceilings, ice, sprint
+Done in 0.2.5–0.3.5: false-positive hunt (low ceilings, ice, sprint
 attribute, soft landings, combat wiring), XRay removed, TickEngine
 foundations (BlockKind/WorldView, AABB solver), web dashboard (players,
-sessions, alts, token auth).
+sessions, alts, punish actions, ban screen with ID).
 
 Next, in order: central punishment manager · SQLite storage behind `Storage` ·
 `/ac alts` in game · punishments GUI · TickEngine simulation · NPC decoy +

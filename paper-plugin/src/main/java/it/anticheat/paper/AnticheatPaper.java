@@ -26,8 +26,8 @@ import java.util.UUID;
 
 public class AnticheatPaper extends JavaPlugin {
 
-    /** Versione mostrata in console/GUI: se non vedi 0.3.0, stai usando un jar vecchio! */
-    public static final String PLUGIN_VERSION = "0.3.0";
+    /** Versione mostrata in console/GUI: se non vedi 0.3.5, stai usando un jar vecchio! */
+    public static final String PLUGIN_VERSION = "0.3.5";
 
     private AdminGui gui;
     /** Dashboard web locale (sola lettura v1). */
@@ -91,8 +91,21 @@ public class AnticheatPaper extends JavaPlugin {
                     PlayerData d = AnticheatCore.get().data(player);
                     java.util.Date exp = expiresAtMs < 0 ? null : new java.util.Date(expiresAtMs);
                     Bukkit.getBanList(BanList.Type.NAME).addBan(d.name, reason, exp, "AntiCheat");
+                    // Schermata ban: motivo, data, Ban ID, scadenza, appeal.
+                    String bid = d.lastBanId == null ? "" : d.lastBanId;
+                    java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                    StringBuilder screen = new StringBuilder();
+                    screen.append("§cYou are banned: §f").append(reason).append("\n");
+                    screen.append("§7Date: §f").append(fmt.format(new java.util.Date())).append("\n");
+                    if (!bid.isEmpty()) screen.append("§7Ban ID: §f").append(bid).append("\n");
+                    if (exp != null) screen.append("§7Expires: §f").append(fmt.format(exp)).append("\n");
+                    String appeal = "";
+                    try { appeal = AnticheatCore.get().config().appealUrl; } catch (Throwable ignored) {}
+                    if (appeal != null && !appeal.isEmpty()) {
+                        screen.append("§7Appeal: §f").append(appeal);
+                    }
                     Player p = Bukkit.getPlayer(player);
-                    if (p != null) p.kickPlayer(reason + (exp == null ? "" : " (fino al " + exp + ")"));
+                    if (p != null) p.kickPlayer(screen.toString());
                 });
             }
 
@@ -164,6 +177,21 @@ public class AnticheatPaper extends JavaPlugin {
 
         gui = new AdminGui(this);
         startDashboard();
+        // Azioni dashboard sulla ban-list vanilla (unban reale, non solo flag).
+        AnticheatCore.get().setDashboardActions(new AnticheatCore.DashboardActions() {
+            @Override
+            public boolean unban(UUID uuid, String name) {
+                try {
+                    org.bukkit.BanList bl =
+                        Bukkit.getBanList(org.bukkit.BanList.Type.NAME);
+                    if (!bl.isBanned(name)) return false;
+                    bl.pardon(name);
+                    return true;
+                } catch (Throwable t) {
+                    return false;
+                }
+            }
+        });
 
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
         getServer().getPluginManager().registerEvents(new CombatListener(), this);

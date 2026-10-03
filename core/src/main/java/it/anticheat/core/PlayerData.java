@@ -106,6 +106,7 @@ public class PlayerData {
     public volatile int groundSpoofStreak = 0;
     public volatile long lastCobwebTime = 0; // ultima volta in ragnatela/neve (attutisce)
     public volatile String lastNoFallBranch = "-"; // debug: quale branch ha flaggato
+    public volatile String lastBanId = ""; // ultimo Ban ID (per la schermata ban)
 
     // fly: salita sostenuta (streak, non singolo picco)
     public volatile int flyUpStreak = 0;

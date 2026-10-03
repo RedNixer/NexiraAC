@@ -1,12 +1,28 @@
 # Changelog
 
+## 0.3.5
+
+- Player card in dashboard: warn/kick/tempban/ban with duration + reason,
+  unban, full punishment history. Everything executes for real (vanilla
+  ban-list) and notifies staff in game.
+- Ban screen like the big servers: reason, date, Ban ID (#XXXXXXXX),
+  expiry, appeal link (`appeal-url:` in config, hidden if empty).
+  Every ban/tempban gets an ID for appeals.
+- Dashboard: sortable session history (connect/disconnect/playtime/brand/
+  IP/version), restyled UI (sidebar, KPIs, empty states), logo served
+  from the jar.
+- Fixes: dashboard also starts on `/ac reload`, bind/port tolerate inline
+  comments, combat double-count (events + packets) fixed, solver ground
+  from standstill fixed, 1 click = 1 swing (CPS was doubled).
+- README reorganized + DASHBOARD.md guide.
+
 ## 0.3.0
 
 - Web dashboard (localhost, token auth): live players with IP/brand/ping/VL,
-  sortable session history (connect/disconnect/playtime/IP/version),
   same-IP alt accounts. Commands `ac dashboard` + `ac dashboard token`.
   See DASHBOARD.md for hosting behind a reverse proxy.
-- README reorganized, roadmap updated.
+
+## 0.2.5
 
 Giornata passata a inseguire falsi positivi col debug acceso. Il grosso:
 

@@ -72,6 +72,84 @@ public class AnticheatCore {
 
     private final List<Check> checks = new ArrayList<>();
     private final Map<UUID, PlayerData> players = new ConcurrentHashMap<>();
+    /** Sessioni (dashboard): join/quit/playtime/IP/brand. */
+    private final it.anticheat.core.dashboard.SessionTracker sessions =
+        new it.anticheat.core.dashboard.SessionTracker();
+
+    public it.anticheat.core.dashboard.SessionTracker sessions() { return sessions; }
+
+    /** Storia punizioni (dashboard/GUI). */
+    private final it.anticheat.core.dashboard.PunishmentLog punishLog =
+        new it.anticheat.core.dashboard.PunishmentLog();
+
+    public it.anticheat.core.dashboard.PunishmentLog punishLog() { return punishLog; }
+
+    /** Azioni solo-Bukkit per la dashboard (unban). L'adapter la imposta. */
+    public interface DashboardActions {
+        /** Togli ban (ban-list). Ritorna false se non era bannato. */
+        default boolean unban(UUID uuid, String name) { return false; }
+        /** Stato ban attuale (nome o uuid). */
+        default boolean isBanned(UUID uuid, String name) { return false; }
+        /** Scadenza ban ms (-1 perm, 0 no ban). */
+        default long banExpiresAt(UUID uuid, String name) { return 0; }
+    }
+
+    private volatile DashboardActions dashActions = new DashboardActions() {};
+
+    public void setDashboardActions(DashboardActions a) {
+        if (a != null) dashActions = a;
+    }
+
+    /**
+     * Punizione manuale (dashboard/GUI staff): esegue + registra.
+     * durationMs: 0 = kick/warn (n/a), >0 tempban, -1 ban permanente.
+     */
+    public void punishManual(UUID uuid, String name, String action, String reason,
+                             long durationMs, String staff) {
+        if (isExempt(uuid)) return;
+        PlayerData d = data(uuid);
+        d.name = name;
+        String r = reason == null || reason.isEmpty() ? "AntiCheat: provvedimento staff" : reason;
+        long exp = durationMs > 0 ? System.currentTimeMillis() + durationMs : durationMs;
+        String bid = "";
+        if (action.equalsIgnoreCase("TEMPBAN") || action.equalsIgnoreCase("BAN")) {
+            bid = genBanId();
+            d.lastBanId = bid;
+        }
+        switch (action.toUpperCase()) {
+            case "WARN" -> actions.warn(uuid, "Staff", d.totalVl());
+            case "KICK" -> actions.kick(uuid, r);
+            case "TEMPBAN" -> actions.tempban(uuid, r, exp);
+            case "BAN" -> actions.ban(uuid, r);
+            case "FREEZE" -> actions.freeze(uuid, true);
+            case "UNFREEZE" -> actions.freeze(uuid, false);
+            default -> { return; }
+        }
+        punishLog.add(uuid, name, action.toUpperCase(), "Staff", r, staff, exp, bid);
+        actions.notifyStaff("§e[AC] §f" + staff + " §7" + action + " §f" + name
+            + (r.isEmpty() ? "" : " §7(" + r + ")"));
+    }
+
+    /** Revoca ban (dashboard). */
+    public boolean unbanManual(UUID uuid, String name, String staff) {
+        boolean ok = dashActions.unban(uuid, name);
+        if (ok) {
+            punishLog.add(uuid, name, "UNBAN", "Staff", "", staff, 0);
+            actions.notifyStaff("§e[AC] §f" + staff + " §7unban §f" + name);
+        }
+        return ok;
+    }
+
+    /** Join: tracking sessione dashboard. */
+    public void handleJoin(UUID uuid, String name, String ip) {
+        sessions.join(uuid, name, ip);
+        data(uuid).name = name;
+    }
+
+    /** Quit: chiude sessione + rimuove stato runtime. */
+    public void handleQuit(UUID uuid) {
+        sessions.quit(uuid);
+    }
     private AnticheatConfig config = new AnticheatConfig();
     private PunishmentConfig punishments = new PunishmentConfig();
     private ProtectionConfig protection = new ProtectionConfig();
@@ -682,6 +760,15 @@ public class AnticheatCore {
         d.lastFallDamageTime = System.currentTimeMillis();
     }
 
+    /** Ban ID stile #90BW9CLL (appeal): 8 char base32 senza confusabili. */
+    public static String genBanId() {
+        String abc = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+        java.util.Random r = new java.util.Random();
+        StringBuilder sb = new StringBuilder("#");
+        for (int i = 0; i < 8; i++) sb.append(abc.charAt(r.nextInt(abc.length())));
+        return sb.toString();
+    }
+
     /** Vista in creativa/volo (dagli adapter main-thread): i bridge la usano. */
     public void noteFlyState(UUID uuid) {
         data(uuid).flyStateTime = System.currentTimeMillis();
@@ -732,6 +819,12 @@ public class AnticheatCore {
             actions.notifyStaff("§c[AC] §f" + d.name + " §7" + check + " +"
                 + vlAdd + " (tot " + all + ") " + details);
         }
+        // Ban ID prima dell'esecuzione (l'adapter lo legge per la schermata).
+        String bid = "";
+        if (dec == Decision.TEMPBAN || dec == Decision.BAN) {
+            bid = genBanId();
+            d.lastBanId = bid;
+        }
         switch (dec) {
             case NOTIFY -> {}
             case WARN -> actions.warn(uuid, check, all);
@@ -740,6 +833,11 @@ public class AnticheatCore {
             case BAN -> actions.ban(uuid, reason);
             case FREEZE -> actions.freeze(uuid, true);
             default -> {}
+        }
+        // storia punizioni (dashboard/GUI): solo azioni reali, mai NOTIFY.
+        if (dec == Decision.WARN || dec == Decision.KICK || dec == Decision.TEMPBAN
+                || dec == Decision.BAN || dec == Decision.FREEZE) {
+            punishLog.add(uuid, d.name, dec.name(), check, reason, "anticheat", expiresAt, bid);
         }
         // setback: riporta a terra ai flag movimento sopra soglia (max 1 ogni 2s)
         long now = System.currentTimeMillis();
