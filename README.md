@@ -130,7 +130,7 @@ that layer: bots, crash items and flood scripts.
 ## Config
 
 One `config.yml`, same keys on Paper (`plugins/AntiCheat/`) and Fabric (`config/anticheat/`):
-admin UUIDs, warn/kick/ban thresholds, per-check on/off, CPS limit, XRay profile,
+admin UUIDs, warn/kick/ban thresholds, per-check on/off, CPS limit,
 setback, test-mode, experimental and packet toggles, client-mod policy. Everything is
 also editable live from `/ac settings`.
 
