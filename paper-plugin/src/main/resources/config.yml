@@ -13,6 +13,10 @@ setback: # riporta a terra ai flag movimento (Speed/Fly/Step/NoFall/Scaffold)
   min-vl: 15
 test-mode: false # se true: logga tutto ma non kicka/banna e niente setback
 packet-checks: true # solo con ProtocolLib installato: timer preciso + range preciso
+dashboard: # web locale sola lettura (http://127.0.0.1:25596 + token)
+  enabled: true
+  port: 25596
+  bind: "127.0.0.1" # mai 0.0.0.0 senza reverse proxy
 checks: # true = attivo, false = disattivo
   Speed: true
   Fly: true

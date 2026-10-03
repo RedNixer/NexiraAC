@@ -1,6 +1,12 @@
 # Changelog
 
-## 0.2.5
+## 0.3.0
+
+- Web dashboard (localhost, token auth): live players with IP/brand/ping/VL,
+  sortable session history (connect/disconnect/playtime/IP/version),
+  same-IP alt accounts. Commands `ac dashboard` + `ac dashboard token`.
+  See DASHBOARD.md for hosting behind a reverse proxy.
+- README reorganized, roadmap updated.
 
 Giornata passata a inseguire falsi positivi col debug acceso. Il grosso:
 

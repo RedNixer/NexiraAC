@@ -26,10 +26,15 @@ import java.util.UUID;
 
 public class AnticheatPaper extends JavaPlugin {
 
-    /** Versione mostrata in console/GUI: se non vedi 0.2.0, stai usando un jar vecchio! */
-    public static final String PLUGIN_VERSION = "0.2.0";
+    /** Versione mostrata in console/GUI: se non vedi 0.3.0, stai usando un jar vecchio! */
+    public static final String PLUGIN_VERSION = "0.3.0";
 
     private AdminGui gui;
+    /** Dashboard web locale (sola lettura v1). */
+    private final it.anticheat.core.dashboard.DashboardAuth dashAuth =
+        new it.anticheat.core.dashboard.DashboardAuth();
+    private final it.anticheat.core.dashboard.DashboardServer dashServer =
+        new it.anticheat.core.dashboard.DashboardServer(dashAuth, AnticheatCore.get().sessions());
 
     @Override
     public void onEnable() {
@@ -158,6 +163,7 @@ public class AnticheatPaper extends JavaPlugin {
         }
 
         gui = new AdminGui(this);
+        startDashboard();
 
         getServer().getPluginManager().registerEvents(new MovementListener(), this);
         getServer().getPluginManager().registerEvents(new CombatListener(), this);
@@ -191,6 +197,69 @@ public class AnticheatPaper extends JavaPlugin {
         getLogger().info("AntiCheat v" + PLUGIN_VERSION + " abilitato (Paper 1.21.11). Admin UUID: " + config.adminUuids.size());
     }
 
+    /** Avvia la dashboard se abilitata (onEnable + reload: il reload non riavvia il server). */
+    public void startDashboard() {
+        if (!AnticheatCore.get().config().dashEnabled) {
+            dashServer.stop();
+            getLogger().info("[AC] Dashboard spenta da config.");
+            return;
+        }
+        // Dashboard web locale (sola lettura): http://bind:port + token.
+        // Token su disco (dashboard.token), mai in config. Bind localhost default.
+        try {
+            java.nio.file.Path tokFile = getDataFolder().toPath().resolve("dashboard.token");
+            String tok = "";
+            if (java.nio.file.Files.exists(tokFile)) {
+                tok = java.nio.file.Files.readString(tokFile).trim();
+            }
+            if (tok.isEmpty()) {
+                tok = dashAuth.regenerate();
+                java.nio.file.Files.writeString(tokFile, tok + "\n");
+                getLogger().info("[AC] Dashboard token creato (conservalo): " + tok);
+            } else {
+                dashAuth.set(tok);
+            }
+            int port = AnticheatCore.get().config().dashPort;
+            String bind = AnticheatCore.get().config().dashBind;
+            if (bind == null || bind.isEmpty()) bind = "127.0.0.1";
+            dashServer.start(bind, port);
+            getLogger().info("[AC] Dashboard su http://" + bind + ":" + port
+                + " (token in dashboard.token)");
+            if (!"127.0.0.1".equals(bind) && !"localhost".equalsIgnoreCase(bind)) {
+                getLogger().warning("[AC] Dashboard esposta su " + bind
+                    + ": usa reverse proxy + firewall, non lasciarla nuda.");
+            }
+        } catch (Throwable t) {
+            getLogger().warning("[AC] Dashboard non avviata: " + t.getMessage());
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        try {
+            dashServer.stop();
+        } catch (Throwable ignored) {}
+    }
+
+    /** Rigenera il token dashboard (console o admin). Ritorna il nuovo token. */
+    public String regenerateDashboardToken() {
+        String tok = dashAuth.regenerate();
+        try {
+            java.nio.file.Files.writeString(
+                getDataFolder().toPath().resolve("dashboard.token"), tok + "\n");
+        } catch (Throwable t) {
+            getLogger().warning("[AC] Token dashboard non salvato: " + t.getMessage());
+        }
+        return tok;
+    }
+
+    /** URL dashboard per i comandi (null se spenta). */
+    public String dashboardUrl() {
+        if (!dashServer.running()) return null;
+        it.anticheat.core.config.AnticheatConfig c = AnticheatCore.get().config();
+        return "http://" + c.dashBind + ":" + c.dashPort;
+    }
+
     public boolean isAdmin(Player p) {
         AnticheatConfig c = AnticheatCore.get().config();
         if (c.adminUuids.contains(p.getUniqueId())) return true;
@@ -217,6 +286,7 @@ public class AnticheatPaper extends JavaPlugin {
             AnticheatConfig cfg = AnticheatConfig.load(getDataFolder().toPath().resolve("config.yml"));
             AnticheatCore.get().init(cfg, AnticheatCore.get().storage(), null); // storage e azioni invariati
             getLogger().info("Config ricaricata. Admin UUID: " + cfg.adminUuids);
+            startDashboard(); // il reload riapre/chiude la dashboard senza restart
             return true;
         } catch (Exception e) {
             getLogger().warning("Reload config fallito: " + e.getMessage());
