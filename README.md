@@ -27,23 +27,26 @@ There is also an optional client companion mod: players who install it get a ver
 badge, and staff get an F8 shortcut to the panel. The server never trusts the client —
 the mod is only a signal, all decisions stay server-side.
 
-## Checks (24)
+## Checks (23)
 
-Movement: Speed (spikes, metronome, hop rhythm), Fly (flight, airtime, stationary hover),
-NoFall (ground spoof, cancelled damage, missing support), Step, Sprint (hunger, blindness,
-item use), NoSlow (items, webs, soul sand), Timer, Jesus, Spider*, Prediction (vanilla
-physics simulation: horizontal/vertical/hover against computed limits instead of fixed
-thresholds — catches slow strafe and glides the old checks missed).
-Combat: Reach (eye-to-hitbox, 3.05 + half ping margin, 8-hit window, through-wall raytrace),
-KillAura (rate, yaw snap, 1.9+ attack-cooldown ignored), AutoClicker (your CPS limit,
-regularity), Multitask*, AimSnap (rotation snaps), AimLock (frozen aim, bow snap),
-RotationStream (raw LOOK packets: single-packet snaps, modulo-360 injections, duplicate
-packets), PacketOrder (attack without movement/swing, packet ground-spoof), Interact
+Movement: Speed (spikes, metronome, hop rhythm), Fly (flight, airtime, stationary hover,
+slime-bounce aware), NoFall (ground spoof, cancelled damage, missing support, soft-landing
+aware: slime/honey/hay/beds/webs never flag), Step (streaked, lag-burst safe), Sprint
+(hunger, blindness, item use incl. bow/food on Paper), NoSlow (items, webs, soul sand),
+Timer, Jesus, Spider*, Prediction (vanilla physics simulation with real block awareness:
+ice slip, low-ceiling 2x sprint-jump, sprint attribute normalization, jump boost).
+Combat: Reach (eye-to-hitbox, 3.05 + half ping margin, 8-hit window, through-wall only
+past 3m), KillAura (rate, yaw snap, 1.9+ cooldown, plus anti-smooth for PvP: hit rhythm,
+perfect-cooldown streaks, target switching), AutoClicker (your CPS limit, regularity —
+1 click = 1 swing, no double counting), Multitask*, AimSnap (LOOK-raw only, no event
+coagulation FPs), AimLock (frozen aim, bow snap),
+RotationStream (raw LOOK packets: single-packet snaps, duplicate packets; GCD off until
+per-player sensitivity recovery lands), PacketOrder (attack without movement/swing,
+packet ground-spoof, creative-aware), Interact
 (mid-use attacks, self-hits, multi-entity ticks, long-range interacts).
 World: Scaffold (rate, gap, sneak, yaw snap, rotation/face, range), FastBreak (damage
 duration, intervals, no-swing, mine timing, same-tick multi-break, hotbar swap, vanilla
-DPS per tool/enchants), AutoTotem (rate, inventory-swap timing, 300ms post-pop refill),
-XRay (statistical, staff alerts only).
+DPS per tool/enchants), AutoTotem (rate, inventory-swap timing, 300ms post-pop refill).
 
 \* experimental checks, off by default (`experimental-checks: true` to enable).
 
@@ -63,7 +66,7 @@ type isn't registered there, so the timer listens on the four specific types.
 |---|---|---|---|
 | Price | Free, open source | Free, open source | Paid |
 | Platforms | Paper/Purpur **and** Fabric, shared core | Bukkit and Fabric | Spigot/Paper forks |
-| Checks | 24 (4 simulated/packet-level) | 130+ packet-level with full movement simulation | 100+, strong combat reputation |
+| Checks | 23 (4 simulated/packet-level) | 130+ packet-level with full movement simulation | 100+, strong combat reputation |
 | Performance | Light by default, packets opt-in | Heavier: simulates every player physics tick | Tuned for large networks |
 | Setup | One config + live GUI tuning + test-mode that logs without punishing | Powerful but config-heavy, needs tuning experience | Close to plug-and-play |
 | Client companion mod | Yes (verified badge, staff F8 panel) | No | No |

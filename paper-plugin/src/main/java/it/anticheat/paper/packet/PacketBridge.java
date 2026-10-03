@@ -22,6 +22,17 @@ import java.util.UUID;
 /** ProtocolLib hooks (Paper only, optional). One listener per check, each isolated. */
 public class PacketBridge {
     private final AnticheatPaper plugin;
+    /** Errori lettura USE_ENTITY: se il mapping PL e rotto, il fallback eventi copre. */
+    private volatile long useEntityErrors = 0;
+    private volatile long lastUseEntityWarn = 0;
+
+    private void warnUseEntity() {
+        long now = System.currentTimeMillis();
+        if (now - lastUseEntityWarn < 30000) return;
+        lastUseEntityWarn = now;
+        plugin.getLogger().warning("[AC] Packet USE_ENTITY illeggibile x" + useEntityErrors
+            + " su questa build PL: fight via eventi (fallback attivo).");
+    }
 
     public PacketBridge(AnticheatPaper plugin) {
         this.plugin = plugin;
@@ -70,13 +81,20 @@ public class PacketBridge {
                     boolean isAttack;
                     try {
                         entityId = event.getPacket().getIntegers().read(0);
-                        // Tipo azione via wrapper+reflection: evita di nominare
-                        // il tipo annidato (non referenziabile in alcune build).
-                        Object raw = event.getPacket().getEnumEntityUseActions().read(0);
-                        Object wrapped = WrappedEnumEntityUseAction.fromHandle(raw);
-                        Object action = wrapped.getClass().getMethod("getAction").invoke(wrapped);
-                        isAttack = "ATTACK".equals(String.valueOf(action));
+                        // API diretta PL (getAction sul wrapper): niente reflection.
+                        // Se il mapping di questa build e rotto, conta e urla.
+                        WrappedEnumEntityUseAction wrapped =
+                            event.getPacket().getEnumEntityUseActions().read(0);
+                        if (wrapped == null) {
+                            useEntityErrors++;
+                            warnUseEntity();
+                            return;
+                        }
+                        isAttack = wrapped.getAction()
+                            == com.comphenix.protocol.wrappers.EnumWrappers.EntityUseAction.ATTACK;
                     } catch (Throwable t) {
+                        useEntityErrors++;
+                        warnUseEntity();
                         return;
                     }
                     UUID uuid = event.getPlayer().getUniqueId();
@@ -126,26 +144,20 @@ public class PacketBridge {
                         if (Math.abs(yaw) > 360 || Math.abs(pitch) > 180) return;
                         UUID uuid = event.getPlayer().getUniqueId();
                         String name = event.getPlayer().getName();
+                        // distXZ reale dall'ultimo move (non 0.1 fisso):
+                        // il lock richiede moto vero, da fermo vale il branch duplicati.
                         double distXZ = 0;
                         try {
-                            PlayerData d = AnticheatCore.get().data(uuid);
-                            double dx = 0, dz = 0;
-                            // spostamento dall'ultimo tracking noto: approssimazione
-                            // sufficiente (il lock richiede 20 pacchetti identici in moto)
-                            distXZ = 0.1;
+                            distXZ = AnticheatCore.get().data(uuid).lastMoveDistXZ;
                         } catch (Throwable ignored) {}
                         final double fDist = distXZ;
                         Bukkit.getScheduler().runTask(plugin, () -> {
                             try {
                                 Player p = Bukkit.getPlayer(uuid);
+                                // real = ultimo move (fDist): d.lastX e gia aggiornato
+                                // da handleMove, ricalcolarlo qui dava sempre ~0.
                                 double real = fDist;
                                 if (p != null) {
-                                    try {
-                                        PlayerData d = AnticheatCore.get().data(uuid);
-                                        double dx = p.getLocation().getX() - d.lastX;
-                                        double dz = p.getLocation().getZ() - d.lastZ;
-                                        real = Math.sqrt(dx * dx + dz * dz);
-                                    } catch (Throwable ignored) {}
                                     // mapping self-test: raw must track Bukkit.
                                     // 20 straight mismatches = this PL build maps
                                     // the floats elsewhere -> kill the hook loudly.
@@ -288,6 +300,8 @@ public class PacketBridge {
         Check.FightContext ctx = new Check.FightContext();
         ctx.distance = eyeDist; // misura precisa: usa distance, eyeDistance resta 0
         ctx.eyeDistance = 0;
+        ctx.targetId = entityId;
+        try { ctx.targetIsPlayer = target instanceof Player; } catch (Throwable t) { ctx.targetIsPlayer = false; }
         ctx.dtSinceLastAttackMillis = -1; // calcolato dal core
         // eye-to-target blocked by a solid = wall hit
         boolean throughWall = false;
@@ -345,7 +359,8 @@ public class PacketBridge {
             AnticheatCore.get().handleInteractAttack(uuid, p.getName(), usingItem, false, entityId);
         } catch (Throwable ignored) {}
         AnticheatCore.get().handleFight(uuid, p.getName(), ctx);
-        AnticheatCore.get().handleClick(uuid, p.getName());
+        // Niente handleClick qui: 1 click = 1 swing Bukkit (onSwing).
+        // Contarlo anche dal pacchetto doppiava il CPS come faceva onHit.
         if (AnticheatCore.get().isDebug(uuid)) {
             PlayerData d = AnticheatCore.get().data(uuid);
             Bukkit.getLogger().info("[AC-DBG] pkt-fight " + p.getName()

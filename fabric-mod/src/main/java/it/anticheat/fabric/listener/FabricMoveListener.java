@@ -59,11 +59,14 @@ public final class FabricMoveListener {
                                     (int) Math.floor(x), (int) Math.floor(y - 0.51), (int) Math.floor(z));
                                 net.minecraft.core.BlockPos sup2 = new net.minecraft.core.BlockPos(
                                     (int) Math.floor(x), (int) Math.floor(y - 1.01), (int) Math.floor(z));
-                                ctx.groundBelow =
-                                    (!p.level().getBlockState(sup1).isAir()
-                                        && p.level().getFluidState(sup1).isEmpty())
-                                    || (!p.level().getBlockState(sup2).isAir()
-                                        && p.level().getFluidState(sup2).isEmpty());
+                                // via mapper supports(): scale/slab/tappeti contano (FP fix)
+                                it.anticheat.core.physics.BlockKind g1 =
+                                    it.anticheat.fabric.physics.FabricBlocks.kindOfState(
+                                        p.level().getBlockState(sup1));
+                                it.anticheat.core.physics.BlockKind g2 =
+                                    it.anticheat.fabric.physics.FabricBlocks.kindOfState(
+                                        p.level().getBlockState(sup2));
+                                ctx.groundBelow = g1.supports() || g2.supports();
                             } catch (Throwable ignored) {
                                 ctx.groundBelow = true;
                             }
@@ -108,6 +111,45 @@ public final class FabricMoveListener {
                             } catch (Throwable ignored) {
                                 ctx.speedAmp = -1;
                             }
+                            // Jump Boost (Mojang registry, come SPEED/BLINDNESS sopra)
+                            try {
+                                net.minecraft.world.effect.MobEffectInstance jeff =
+                                    p.getEffect(net.minecraft.world.effect.MobEffects.JUMP_BOOST);
+                                ctx.jumpAmp = jeff == null ? -1 : jeff.getAmplifier();
+                            } catch (Throwable ignored) {
+                                ctx.jumpAmp = -1;
+                            }
+                            // soffitto sopra la testa (salti troncati): salita + aria
+                            try {
+                                ctx.ceilingAbove = false;
+                                if (dy > 0.05 || !ctx.onGround) {
+                                    net.minecraft.core.BlockPos c1 = new net.minecraft.core.BlockPos(
+                                        (int) Math.floor(x), (int) Math.floor(y + 1.9), (int) Math.floor(z));
+                                    net.minecraft.core.BlockPos c2 = new net.minecraft.core.BlockPos(
+                                        (int) Math.floor(x), (int) Math.floor(y + 2.4), (int) Math.floor(z));
+                                    boolean s1 = !p.level().getBlockState(c1).isAir()
+                                        && p.level().getFluidState(c1).isEmpty();
+                                    boolean s2 = !p.level().getBlockState(c2).isAir()
+                                        && p.level().getFluidState(c2).isEmpty();
+                                    ctx.ceilingAbove = s1 || s2;
+                                }
+                            } catch (Throwable ignored) {
+                                ctx.ceilingAbove = false;
+                            }
+                            // atterraggio morbido (nomi registry, come onIce sotto)
+                            try {
+                                ctx.softLanding = false;
+                                if (ctx.onGround) {
+                                    net.minecraft.core.BlockPos belowPos =
+                                        new net.minecraft.core.BlockPos((int) Math.floor(x), (int) Math.floor(y - 0.51), (int) Math.floor(z));
+                                    String sb = p.level().getBlockState(belowPos).getBlock().toString()
+                                        .toLowerCase(java.util.Locale.ROOT);
+                                    ctx.softLanding = sb.contains("slime") || sb.contains("honey")
+                                        || sb.contains("hay") || sb.contains("bed");
+                                }
+                            } catch (Throwable ignored) {
+                                ctx.softLanding = false;
+                            }
                             // Fase 1: soul sand + soul speed (come Paper).
                             try {
                                 net.minecraft.core.BlockPos feetPos =
@@ -135,6 +177,14 @@ public final class FabricMoveListener {
                                     new net.minecraft.core.BlockPos((int) Math.floor(x), (int) Math.floor(y - 0.51), (int) Math.floor(z));
                                 ctx.liquidFeet = !p.level().getFluidState(feetPos).isEmpty();
                                 ctx.liquidBelow = !p.level().getFluidState(belowPos).isEmpty();
+                                // ghiaccio sotto (nome registry contiene ice, nessun ref inventata)
+                                try {
+                                    String bn = p.level().getBlockState(belowPos).getBlock().toString()
+                                        .toLowerCase(java.util.Locale.ROOT);
+                                    ctx.onIce = bn.contains("ice");
+                                } catch (Throwable ignored2) {
+                                    ctx.onIce = false;
+                                }
                             } catch (Throwable ignored) {}
                             // inventario aperto (per GUIMove): menu diverso da quello player
                             try {
@@ -157,6 +207,26 @@ public final class FabricMoveListener {
                                     + " dy=" + String.format("%.2f", dy) + " ground=" + ctx.onGround
                                     + " below=" + ctx.groundBelow + " spdStreak=" + dd.speedStreak
                                     + " VL=" + dd.totalVl());
+                                // Solver parallelo (Fase 2, mai VL)
+                                try {
+                                    double px = prev[0], py = prev[1], pz = prev[2];
+                                    dd.blockCache.fill(px, py, pz, (bx, by, bz) ->
+                                        it.anticheat.fabric.physics.FabricBlocks.kindOfState(
+                                            p.level().getBlockState(new net.minecraft.core.BlockPos(bx, by, bz))));
+                                    it.anticheat.core.physics.CollisionSolver.Result sr =
+                                        it.anticheat.core.physics.CollisionSolver.move(dd.blockCache,
+                                            px, py, pz, dx, dy, dz);
+                                    double sx = sr.x - x;
+                                    double sy = sr.y - y;
+                                    double sz = sr.z - z;
+                                    double off = Math.sqrt(sx * sx + sy * sy + sz * sz);
+                                    if (off > 0.3 || sr.onGround != ctx.onGround) {
+                                        System.out.println("[AC-SOL] " + p.getScoreboardName()
+                                            + " off=" + String.format("%.2f", off)
+                                            + " calcGround=" + sr.onGround + " cliGround=" + ctx.onGround
+                                            + " step=" + sr.stepped);
+                                    }
+                                } catch (Throwable ignored2) {}
                             }
                         }
                     }

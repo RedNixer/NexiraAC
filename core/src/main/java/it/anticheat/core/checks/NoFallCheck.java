@@ -32,6 +32,7 @@ public class NoFallCheck extends Check {
                 if (data.groundSpoofStreak >= LatencyComp.needStreak(ctx.ping, 6)) {
                     data.groundSpoofStreak = 0;
                     data.wasOnGround = ctx.onGround;
+                    data.lastNoFallBranch = "A";
                     return 5;
                 }
             } else {
@@ -54,33 +55,44 @@ public class NoFallCheck extends Check {
 
         // atterraggio: se caduto da >3.5 blocchi, aspetta il danno.
         // Usa il picco Y reale, non la fallDistance server (spoofabile).
+        // Atterraggio morbido: il mondo assorbe (stile Grim), mai pending.
         if (ctx.onGround && !data.wasOnGround && !ctx.inWater && !ctx.onLadder) {
-            double fell = data.fallStartY - ctx.y;
-            if (fell > 3.5) {
-                data.pendingFallDist = fell;
-                data.pendingFallTime = System.currentTimeMillis();
+            if (ctx.softLanding) {
+                data.pendingFallDist = 0;
+                data.fallStartY = 0;
+            } else {
+                double fell = data.fallStartY - ctx.y;
+                if (fell > 3.5) {
+                    data.pendingFallDist = fell;
+                    data.pendingFallTime = System.currentTimeMillis();
+                }
+                data.fallStartY = 0;
             }
-            data.fallStartY = 0;
         }
 
-        // B) atterrato da oltre 1.5s senza alcun danno = danno cancellato
+        // B) atterrato da oltre 1.5s senza alcun danno = danno cancellato.
+        // Neve/ragnatela recente (2s): attutiscono vanilla, skip (stile Grim).
         if (data.pendingFallDist > 0
                 && System.currentTimeMillis() - data.pendingFallTime > 1500
-                && data.pendingFallTime > data.lastFallDamageTime) {
+                && data.pendingFallTime > data.lastFallDamageTime
+                && System.currentTimeMillis() - data.lastCobwebTime > 2000) {
             data.pendingFallDist = 0;
             data.wasOnGround = ctx.onGround;
+            data.lastNoFallBranch = "B";
             return 5;
         }
 
         // C) supporto: dichiara terra ma sotto non c'e niente mentre scende.
-        //    Il controllo non dipende dalla velocita dei pacchetti: anche se il
-        //    cheat spalma la caduta, in aria non c'e supporto per 8 movimenti.
-        if (ctx.onGround && !ctx.groundBelow && ctx.dy < -0.3
+        //    Soglia -1.0 (non -0.3): scendere da slab/blocco (step-down -0.5/-0.6)
+        //    e legit. Lo spoof vero cade a -2+ con ground dichiarato.
+        //    Il cheat lento lo becca comunque il branch-B (danno mancante).
+        if (ctx.onGround && !ctx.groundBelow && ctx.dy < -1.0
                 && !ctx.inWater && !ctx.onLadder && !ctx.flying && !ctx.gliding) {
             data.noGroundStreak++;
             if (data.noGroundStreak >= LatencyComp.needStreak(ctx.ping, 8)) {
                 data.noGroundStreak = 0;
                 data.wasOnGround = ctx.onGround;
+                data.lastNoFallBranch = "C";
                 return 5;
             }
         } else {
@@ -101,7 +113,10 @@ public class NoFallCheck extends Check {
         }
         // caduta importante senza alcun danno (assorbito dal cheat)
         data.lastFallDamageTime = 0; // non far scattare la guardia d'ordine
-        if (fallDistance > 4.0) return 4;
+        if (fallDistance > 4.0) {
+            data.lastNoFallBranch = "D";
+            return 4;
+        }
         return 0;
     }
 }

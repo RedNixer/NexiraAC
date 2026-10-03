@@ -18,7 +18,7 @@ public class ProtectionConfig {
     public int creativeNbtMaxChars = 60000;
     public int payloadMaxBytes = 32768;
     public int maxClickPerSec = 12;
-    public int maxTabPerSec = 5;
+    public int maxTabPerSec = 20;
     // spam gioco
     public int maxChatPer3s = 6;
     public int chatMuteSeconds = 30;
@@ -28,7 +28,7 @@ public class ProtectionConfig {
     public static String defaultJson() {
         return "{\n"
             + "  \"login\": { \"max-per-10s\": 5, \"strikes-for-ban\": 3, \"ban-minutes\": 10, \"max-joinquit-per-30s\": 3 },\n"
-            + "  \"exploit\": { \"creative-nbt-max\": 60000, \"payload-max-bytes\": 32768, \"max-click-per-sec\": 12, \"max-tab-per-sec\": 5 },\n"
+            + "  \"exploit\": { \"creative-nbt-max\": 60000, \"payload-max-bytes\": 32768, \"max-click-per-sec\": 12, \"max-tab-per-sec\": 20 },\n"
             + "  \"spam\": { \"max-chat-per-3s\": 6, \"mute-seconds\": 30, \"max-cmd-per-3s\": 8, \"book-max-chars\": 20000 }\n"
             + "}\n";
     }

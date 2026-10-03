@@ -98,9 +98,6 @@ public class PunishmentConfig {
             + "      { \"vl\": 30, \"action\": \"warn\", \"reason\": \"Fly sospetto\" },\n"
             + "      { \"vl\": 60, \"action\": \"kick\", \"reason\": \"Volo impossibile\" },\n"
             + "      { \"vl\": 100, \"action\": \"tempban\", \"duration\": \"7d\", \"reason\": \"Fly\" }\n"
-            + "    ],\n"
-            + "    \"XRay\": [\n"
-            + "      { \"vl\": 2, \"action\": \"notify\", \"reason\": \"XRay? controllare\" }\n"
             + "    ]\n"
             + "  }\n"
             + "}\n";

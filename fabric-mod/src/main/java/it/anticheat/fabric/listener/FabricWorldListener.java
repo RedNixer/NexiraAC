@@ -7,7 +7,7 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionResult;
 
-/** Scaffold + FastBreak + XRay (logica invariata Fase 0). */
+/** Scaffold + FastBreak (logica invariata Fase 0). */
 public final class FabricWorldListener {
     private FabricWorldListener() {}
 
@@ -40,7 +40,7 @@ public final class FabricWorldListener {
             return InteractionResult.PASS;
         });
 
-        // FastBreak + XRay statistico (no creativa)
+        // FastBreak (no creativa)
         PlayerBlockBreakEvents.BEFORE.register((world, player, pos, state, blockEntity) -> {
             if (player instanceof ServerPlayer sp && !sp.isCreative()) {
                 float hardness = 1.0f;
@@ -110,36 +110,8 @@ public final class FabricWorldListener {
                         hasteAmp, fatigueAmp, inWater, onGround);
                 } catch (Throwable ignored) {}
                 AnticheatCore.get().handleBlockBreak(sp.getUUID(), sp.getScoreboardName(), hard, null);
-                String path = blockPath(state);
-                boolean valuable = path.equals("diamond_ore")
-                    || path.equals("deepslate_diamond_ore")
-                    || path.equals("ancient_debris");
-                boolean stone = !valuable && (path.equals("stone")
-                    || path.equals("deepslate")
-                    || path.equals("netherrack")
-                    || path.equals("tuff")
-                    || path.equals("andesite")
-                    || path.equals("diorite")
-                    || path.equals("granite")
-                    || path.equals("calcite")
-                    || path.equals("smooth_basalt")
-                    || path.equals("basalt")
-                    || path.equals("blackstone")
-                    || path.equals("gravel"));
-                if (valuable || stone) {
-                    AnticheatCore.get().handleXrayBreak(sp.getUUID(), sp.getScoreboardName(), valuable, true);
-                }
             }
             return true; // mai cancellare: solo rilevazione
         });
-    }
-
-    /** Nome registro del blocco rotto (es. "diamond_ore"), "" se non determinabile. */
-    public static String blockPath(net.minecraft.world.level.block.state.BlockState state) {
-        try {
-            return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).getPath();
-        } catch (Throwable t) {
-            return "";
-        }
     }
 }

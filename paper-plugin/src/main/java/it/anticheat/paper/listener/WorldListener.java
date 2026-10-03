@@ -122,26 +122,6 @@ public class WorldListener implements Listener {
                 + " hard=" + hard + " brkStreak=" + d.fastBreakStreak
                 + " durStreak=" + d.fastBreakDurStreak + " VL " + before + "->" + d.totalVl());
         }
-        // XRay statistico: diamanti/detriti vs pietra scavata
-        org.bukkit.Material t = e.getBlock().getType();
-        boolean valuable = t == org.bukkit.Material.DIAMOND_ORE
-            || t == org.bukkit.Material.DEEPSLATE_DIAMOND_ORE
-            || t == org.bukkit.Material.ANCIENT_DEBRIS;
-        boolean stone = !valuable && (t == org.bukkit.Material.STONE
-            || t == org.bukkit.Material.DEEPSLATE
-            || t == org.bukkit.Material.NETHERRACK
-            || t == org.bukkit.Material.TUFF
-            || t == org.bukkit.Material.ANDESITE
-            || t == org.bukkit.Material.DIORITE
-            || t == org.bukkit.Material.GRANITE
-            || t == org.bukkit.Material.CALCITE
-            || t == org.bukkit.Material.SMOOTH_BASALT
-            || t == org.bukkit.Material.BASALT
-            || t == org.bukkit.Material.BLACKSTONE
-            || t == org.bukkit.Material.GRAVEL);
-        if (valuable || stone) {
-            AnticheatCore.get().handleXrayBreak(p.getUniqueId(), p.getName(), valuable, true);
-        }
     }
 
     @EventHandler(ignoreCancelled = true)

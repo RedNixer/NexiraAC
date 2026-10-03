@@ -334,7 +334,6 @@ public class AcCommand implements CommandExecutor, TabCompleter {
         to.sendMessage("§7streak spd/fly-step/reach/kb: §f" + d.speedStreak + "/" + d.airTicks
             + "/" + Integer.bitCount(d.reachWindow) + "x/6/" + d.groundSpoofStreak
             + " §7scaf/brk: §f" + d.scaffoldStreak + "/" + d.fastBreakStreak
-            + " §7xray: §f" + d.xrayOres + "/" + d.xrayStone
             + " §7exempt: §f" + AnticheatCore.get().isExempt(t.getUniqueId()));
     }
 

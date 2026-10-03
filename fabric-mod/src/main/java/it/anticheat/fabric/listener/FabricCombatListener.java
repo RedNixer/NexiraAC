@@ -21,6 +21,9 @@ public final class FabricCombatListener {
             double dist = sp.distanceTo(entity);
             Check.FightContext ctx = new Check.FightContext();
             ctx.distance = dist;
+            try { ctx.targetId = entity.getId(); } catch (Throwable ignored2) { ctx.targetId = -1; }
+            try { ctx.targetIsPlayer = entity instanceof net.minecraft.world.entity.player.Player; }
+            catch (Throwable ignored2) { ctx.targetIsPlayer = false; }
             ctx.attackerYaw = sp.getYRot();
             try { ctx.attackerPitch = sp.getXRot(); } catch (Throwable ignored) {}
             ctx.ax = sp.getX();

@@ -26,6 +26,12 @@ public abstract class Check {
         public boolean soulSand = false; // piedi su soul sand (solo Paper per ora)
         public boolean soulSpeed = false; // stivali soul speed (solo Paper per ora)
         public int speedAmp = -1; // pozione Speed: amplifier, -1 = nessuna (default sicuro)
+        public int jumpAmp = -1; // Jump Boost: amplifier, -1 = nessuno
+        public boolean ceilingAbove = false; // blocco solido sopra la testa (salti troncati)
+        public boolean onIce = false; // ghiaccio sotto (scivola: 8-10 b/s legit)
+        public double moveSpeedAttr = 0.1; // attribute movement_speed (base vanilla 0.1)
+        public boolean softLanding = false; // atterraggio morbido (slime/honey/fieno/letti)
+        public boolean slowFall = false; // slow falling / levitation (hover vanilla)
         public boolean onGround;
         public boolean flying;      // allowFlight / gamemode creativa
         public boolean inWater;
@@ -50,6 +56,8 @@ public abstract class Check {
         public double az;
         public float attackCooldown = -1; // 0-1 vanilla (1 = carico pieno), -1 = non disponibile
         public boolean throughWall = false; // raytrace occhio->target bloccato (solo Paper+PL)
+        public int targetId = -1; // entityId bersaglio (-1 = ignoto)
+        public boolean targetIsPlayer = false; // true = PvP (ritmici valgono solo qui)
         public int ping;
     }
 

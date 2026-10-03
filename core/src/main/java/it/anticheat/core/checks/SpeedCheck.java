@@ -46,6 +46,7 @@ public class SpeedCheck extends Check {
         if (data.speedPendingMs < 120) return 0; // accumula, non giudicare
 
         double speed = data.speedPendingDist / (data.speedPendingMs / 1000.0);
+        double winSec = data.speedPendingMs / 1000.0;
         data.speedPendingDist = 0;
         data.speedPendingMs = 0;
 
@@ -54,8 +55,16 @@ public class SpeedCheck extends Check {
         double hillBonus = ctx.dy < -1.0 ? 2.0 : 0;
         double lim = 9.5 + potionBonus + hillBonus + pingBonus;
         double hard = 12.0 + potionBonus + hillBonus + pingBonus;
-        // knockback-adjusted speed vs limits
-        double kbSpeed = kbXZ / Math.max(0.05, data.speedPendingMs <= 0 ? 0.12 : data.speedPendingMs / 1000.0);
+        // attribute movement_speed custom (mod/beacon): scala i tetti.
+        // attrFactor normalizza il +30% sprint (contato due volte altrimenti)
+        double af = it.anticheat.core.physics.MovementPredictor.attrFactor(
+            ctx.moveSpeedAttr, ctx.sprinting);
+        if (Math.abs(af - 1.0) > 1e-9) {
+            lim *= af;
+            hard *= af;
+        }
+        // knockback-adjusted speed vs limits (winSec salvato prima del reset)
+        double kbSpeed = kbXZ / Math.max(0.05, winSec);
         double speedAdj = Math.max(0, speed - kbSpeed);
         if (speedAdj > hard) data.speedStreak += 2;
         else if (speedAdj > lim) data.speedStreak++;
@@ -69,10 +78,10 @@ public class SpeedCheck extends Check {
 
         // Con pozione Speed il metronomo non vale (camminare a 6 b/s e normale):
         // resta solo la finestra scalata sopra.
-        if (ctx.speedAmp >= 0) return checkHop(data, ctx);
+        if (ctx.speedAmp >= 0) return checkHop(data, ctx, speed);
         int extra = checkMetronome(data, ctx, now);
         if (extra > 0) return extra;
-        return checkHop(data, ctx);
+        return checkHop(data, ctx, speed);
     }
 
     /** Metronomo: 5-6.8 b/s costanti per ~2s SENZA sprintare (Speed Vanilla). */
@@ -101,8 +110,8 @@ public class SpeedCheck extends Check {
         return 0;
     }
 
-    /** Hop ritmico: decolli a intervalli quasi identici + velocita alta. */
-    private int checkHop(PlayerData data, Check.MoveContext ctx) {
+    /** Hop ritmico: decolli a intervalli quasi identici + velocita alta (su finestra, non singolo pacchetto). */
+    private int checkHop(PlayerData data, Check.MoveContext ctx, double winSpeed) {
         if (data.hopTimes.size() < 5) return 0;
         java.util.ArrayList<Long> t = new java.util.ArrayList<>(data.hopTimes);
         java.util.ArrayList<Long> gaps = new java.util.ArrayList<>();
@@ -113,9 +122,9 @@ public class SpeedCheck extends Check {
         double var = 0;
         for (long g : gaps) var += (g - mean) * (g - mean);
         double std = Math.sqrt(var / gaps.size());
-        double speed = ctx.dtMillis <= 0 ? 0 : ctx.distXZ / (ctx.dtMillis / 1000.0);
-        double hopMin = 6.0 + (ctx.speedAmp >= 0 ? 2.2 * (ctx.speedAmp + 1) : 0);
-        if (mean > 120 && mean < 700 && std < 50 && speed > hopMin) {
+        // sprint-jump legit tocca 7-8 a ritmo costante; cheat bhop tiene 9+
+        double hopMin = 8.5 + (ctx.speedAmp >= 0 ? 2.2 * (ctx.speedAmp + 1) : 0);
+        if (mean > 120 && mean < 700 && std < 50 && winSpeed > hopMin) {
             data.hopTimes.clear();
             return 3;
         }

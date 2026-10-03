@@ -265,8 +265,6 @@ public final class FabricAdminGui {
                 inv.setItem(15, named(c.verbose ? Items.REDSTONE_TORCH : Items.GRAY_DYE,
                     "§b§lNotifiche dettagliate: " + (c.verbose ? "§aON" : "§cOFF"),
                     List.of("§7Se ON, lo staff vede ogni flag.", "", "§eClick per cambiare")));
-                inv.setItem(16, named(Items.SPYGLASS, "§d§lXRay: §f" + c.xrayPresetName(), List.of(
-                    "§7Profilo rilevazione diamanti.", "", "§eClick per cambiare")));
                 inv.setItem(32, named(c.testMode ? Items.BEACON : Items.GRAY_DYE,
                     "§d§lTest-mode: " + (c.testMode ? "§aON" : "§cOFF"),
                     List.of("§7Se ON: logga ma NON punisce.", "", "§eClick per cambiare")));
@@ -345,8 +343,6 @@ public final class FabricAdminGui {
             c.verbose = !c.verbose;
         } else if (slot == 13) {
             c.cycleAutoClicker();
-        } else if (slot == 16) {
-            c.cycleXrayPreset();
         } else if (slot == 32) {
             c.testMode = !c.testMode;
             admin.sendSystemMessage(Component.literal(c.testMode

@@ -13,11 +13,12 @@ public class ReachCheck extends Check {
 
     @Override
     public int checkFight(PlayerData data, FightContext ctx) {
-        // A1: colpo attraverso un muro (raytrace bloccato): 2 di fila = cheat.
-        // Il singolo e lag/angolo hitbox, mai flag immediato.
-        if (ctx.throughWall) {
+        // A1: colpo attraverso un muro (raytrace bloccato): 3 di fila oltre 3m.
+        // Sotto i 3m il raytrace borderline (recinti/slab/angoli) flaggava FP:
+        // li copre la finestra distanza. Stile Grim: muri solo oltre soglia.
+        if (ctx.throughWall && ctx.distance > 3.0) {
             data.wallHitStreak++;
-            if (data.wallHitStreak >= 2) {
+            if (data.wallHitStreak >= 3) {
                 data.wallHitStreak = 0;
                 return 5;
             }
