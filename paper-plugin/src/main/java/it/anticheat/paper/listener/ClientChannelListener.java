@@ -36,6 +36,8 @@ public class ClientChannelListener implements PluginMessageListener {
         String min = AnticheatCore.get().config().clientMinVersion;
         boolean ok = compareVersions(ver, min) >= 0;
         AnticheatCore.get().data(player.getUniqueId()).name = player.getName();
+        // brand dashboard: mod presente + versione
+        AnticheatCore.get().sessions().brand(player.getUniqueId(), "nexira-client", ver);
         // segna verificato
         for (org.bukkit.plugin.Plugin pl : Bukkit.getPluginManager().getPlugins()) {
             if (pl instanceof AnticheatPaper paper) {

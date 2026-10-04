@@ -212,6 +212,8 @@ public class MovementListener implements Listener {
         AnticheatCore.get().handleMove(p.getUniqueId(), p.getName(), ctx,
             e.getTo().getX(), e.getTo().getY(), e.getTo().getZ(),
             e.getTo().getWorld().getName());
+        // heartbeat dashboard (ping live)
+        AnticheatCore.get().sessions().heartbeat(p.getUniqueId(), ctx.ping);
         if (AnticheatCore.get().isDebug(p.getUniqueId())) {
             it.anticheat.core.PlayerData d = AnticheatCore.get().data(p.getUniqueId());
             org.bukkit.Bukkit.getLogger().info("[AC-DBG] move " + p.getName()

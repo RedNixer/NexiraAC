@@ -33,6 +33,14 @@ public class JoinQuitListener implements Listener {
         PlayerData d = AnticheatCore.get().data(p.getUniqueId());
         d.name = p.getName();
         d.joinTime = System.currentTimeMillis();
+        // sessione dashboard (IP per alts/playtime)
+        String ip = "-";
+        try {
+            if (p.getAddress() != null && p.getAddress().getAddress() != null) {
+                ip = p.getAddress().getAddress().getHostAddress();
+            }
+        } catch (Throwable ignored) {}
+        AnticheatCore.get().handleJoin(p.getUniqueId(), p.getName(), ip);
         // Diagnostica admin: visibile in console, cosi si confronta con config.yml
         plugin.getLogger().info("[AC] join " + p.getName()
             + " uuid=" + p.getUniqueId()
@@ -43,6 +51,7 @@ public class JoinQuitListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         AnticheatCore.get().setInventoryOpen(e.getPlayer().getUniqueId(), false);
+        AnticheatCore.get().handleQuit(e.getPlayer().getUniqueId());
         // teniamo i dati per lo storico (VL + report); rimozione solo con restart.
         // AnticheatCore.get().remove(e.getPlayer().getUniqueId());
     }
