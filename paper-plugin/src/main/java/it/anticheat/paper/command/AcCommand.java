@@ -102,6 +102,18 @@ public class AcCommand implements CommandExecutor, TabCompleter {
                     : "Salvataggio fallito, vedi log.");
                 return true;
             }
+            if (args.length >= 1 && args[0].equalsIgnoreCase("dashboard")) {
+                if (args.length >= 2 && args[1].equalsIgnoreCase("token")) {
+                    String tok = plugin.regenerateDashboardToken();
+                    sender.sendMessage("Nuovo token dashboard: " + tok);
+                } else {
+                    String url = plugin.dashboardUrl();
+                    sender.sendMessage(url == null
+                        ? "Dashboard spenta (dashboard.enabled in config)."
+                        : "Dashboard: " + url + " (token in dashboard.token)");
+                }
+                return true;
+            }
             if (args.length >= 2 && args[0].equalsIgnoreCase("debug")) {
                 toggleDebug(sender, args[1]);
                 return true;
@@ -120,7 +132,7 @@ public class AcCommand implements CommandExecutor, TabCompleter {
                 }
                 return true;
             }
-            sender.sendMessage("Solo in-game (oppure ac <add|reload|vl|reset|stats|debug|cps|testmode|experimental>).");
+            sender.sendMessage("Solo in-game (oppure ac <add|reload|vl|reset|stats|debug|dashboard|cps|testmode|experimental>).");
             return true;
         }
         Player p = (Player) sender;
@@ -180,6 +192,15 @@ public class AcCommand implements CommandExecutor, TabCompleter {
                 else p.sendMessage("§cSalvataggio fallito, vedi console.");
             }
             case "debug" -> toggleDebug(p, args.length >= 2 ? args[1] : p.getName());
+            case "dashboard" -> {
+                if (args.length >= 2 && args[1].equalsIgnoreCase("token")) {
+                    p.sendMessage("§eNuovo token: §f" + plugin.regenerateDashboardToken());
+                } else {
+                    String url = plugin.dashboardUrl();
+                    p.sendMessage(url == null ? "§cDashboard spenta."
+                        : "§bDashboard: §f" + url + " §7(token in dashboard.token)");
+                }
+            }
             case "cps" -> {
                 if (args.length < 2) {
                     p.sendMessage("§dLimite CPS attuale: §f" + AnticheatCore.get().config().cpsLimit
@@ -341,7 +362,7 @@ public class AcCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command cmd, String alias, String[] args) {
         List<String> out = new ArrayList<>();
         if (args.length == 1) {
-            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "reports", "cps", "testmode", "experimental", "download", "vanish", "inv", "ban", "kick", "unban", "freeze", "unfreeze", "reload", "add"))
+            for (String s : List.of("gui", "settings", "vl", "reset", "stats", "debug", "dashboard", "reports", "cps", "testmode", "experimental", "download", "vanish", "inv", "ban", "kick", "unban", "freeze", "unfreeze", "reload", "add"))
                 if (s.startsWith(args[0].toLowerCase())) out.add(s);
         } else if (args.length == 2
                 && (args[0].equalsIgnoreCase("vl") || args[0].equalsIgnoreCase("reset") || args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("stats") || args[0].equalsIgnoreCase("debug") || args[0].equalsIgnoreCase("inv") || args[0].equalsIgnoreCase("ban") || args[0].equalsIgnoreCase("kick") || args[0].equalsIgnoreCase("unban") || args[0].equalsIgnoreCase("freeze") || args[0].equalsIgnoreCase("unfreeze"))) {
