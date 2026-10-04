@@ -27,6 +27,9 @@ public class ReachCheck extends Check {
         }
         double d = ctx.eyeDistance > 0 ? Math.min(ctx.distance, ctx.eyeDistance) : ctx.distance;
         // vanilla 3.0 + 0.05 rumore + mezzo margine ping (tetto 4.0)
+        // FIXME: reach attribute custom (mod 1.21) alza il range legit.
+        // Raro in vanilla, ma con attributi moddati questo flagga.
+        // Leggere l'attribute come facciamo per movement_speed.
         double limit = Math.min(4.0, 3.05 + LatencyComp.margin(ctx.ping) / 2.0);
         double over = d - limit;
         // finestra ultimi 8 colpi: 5+ sfori = cheat (l'oscillazione da lag

@@ -108,6 +108,9 @@ public class ScaffoldCheck extends Check {
         return Math.toDegrees(Math.acos(dot));
     }
 
+    // TODO: rotPlace>55 con speedbridge veloce borderline (04/10).
+    // Se arriva un log con flag in bridging dritto legit, alzare a 65
+    // o richiedere pitch>60. Non tocco senza dati.
     /**
      * RotationPlace + FarPlace: il player guarda davvero il blocco?
      * Becca gli scaffold con rotazioni silenziose (piazzano guardando altrove)

@@ -85,7 +85,8 @@ public class RotationStreamCheck extends Check {
         }
 
         // C) GCD disabilitato: costante fissa 0.0005 = FP su mira umana.
-        // Fase B: recovery sensibilita per-player stile Grim, poi riattivare.
+        // TODO: recovery sensibilita per-player (mode su 25 campioni come Grim),
+        // poi riattivare. Testato il 04/10: con sens alta flaggava flick normali.
         // (blocco commentato, non cancellato)
         // if (yDiff > 0.01 && yDiff < 30) {
         //     double rest = yDiff % GCD_MIN;
